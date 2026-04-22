@@ -67,17 +67,23 @@ function AreaDetail() {
         </div>
       </header>
 
+      <section className="flex flex-col gap-4">
+        <header className="flex items-baseline justify-between border-b border-ruling pb-3">
+          <h3 className="text-xl font-serif">Tasks</h3>
+          <span className="text-xs text-ink-muted uppercase tracking-widest">In this domain</span>
+        </header>
+        <TaskListInline tasks={tasks.filter((t) => !t.goal_id)} accent={a.color} />
+        <NewTaskInline areaId={areaId} goalId={null} placeholder="A task in this domain…" />
+      </section>
+
       <section className="flex flex-col gap-6">
         <header className="flex items-baseline justify-between border-b border-ruling pb-3">
           <h3 className="text-xl font-serif">Goals</h3>
           <NewGoalDialog areaId={areaId} />
         </header>
         {goals.length === 0 ? (
-          <div className="border border-dashed border-ruling p-8 text-center flex flex-col items-center gap-4">
-            <div className="space-y-2 max-w-[42ch]">
-              <p className="font-serif text-lg">No goals yet</p>
-              <p className="text-sm text-ink-muted">Create a goal first, then you can add tasks inside it. That is why you are seeing empty task counts right now.</p>
-            </div>
+          <div className="border border-dashed border-ruling p-8 text-center flex flex-col items-center gap-3">
+            <p className="text-sm text-ink-muted max-w-[42ch]">Goals are optional sub-groups with a target date. Use them to bundle related tasks.</p>
             <NewGoalDialog areaId={areaId} />
           </div>
         ) : (
