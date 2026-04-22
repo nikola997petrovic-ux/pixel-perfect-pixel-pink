@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAreas, useAllTasks, useStreaks, useDeleteArea } from "@/lib/api";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
+import { EditAreaDialog } from "@/components/EditAreaDialog";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,24 +59,27 @@ function AreasPage() {
                     <span className="text-[10px] tracking-widest uppercase" style={{ color: a.color }}>{a.emoji} {a.name}</span>
                     <h4 className="font-serif text-xl mt-1 truncate">{a.description || "Untitled chapter"}</h4>
                   </Link>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-overdue"><Trash2 className="size-4" /></Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-paper border-ruling">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="font-serif">Remove this domain?</AlertDialogTitle>
-                        <AlertDialogDescription>This will also remove all goals and tasks within it. The action cannot be undone.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => del.mutate(a.id)} className="bg-overdue text-paper hover:bg-overdue/90">Remove</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center gap-1.5">
+                    <EditAreaDialog area={a} trigger={<Button variant="outline" size="sm" className="border-ruling text-ink hover:bg-paper">Edit</Button>} />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-overdue"><Trash2 className="size-4" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-paper border-ruling">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-serif">Remove this domain?</AlertDialogTitle>
+                          <AlertDialogDescription>This will also remove all goals and tasks within it. The action cannot be undone.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => del.mutate(a.id)} className="bg-overdue text-paper hover:bg-overdue/90">Remove</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
                 <div className="flex justify-between text-xs text-ink-muted tabular-nums">
-                  <span>{s.pct}% · {s.done}/{s.total} tasks</span>
+                  <span>{s.total === 0 ? "No tasks yet" : `${s.pct}% · ${s.done}/${s.total} tasks`}</span>
                   <span>{st?.current_streak ? `${st.current_streak} ✦` : "—"}</span>
                 </div>
                 <div className="w-full h-[2px] bg-ruling overflow-hidden">

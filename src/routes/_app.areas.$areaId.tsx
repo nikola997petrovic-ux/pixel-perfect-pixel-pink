@@ -73,8 +73,12 @@ function AreaDetail() {
           <NewGoalDialog areaId={areaId} />
         </header>
         {goals.length === 0 ? (
-          <div className="border border-dashed border-ruling p-8 text-center">
-            <p className="text-sm text-ink-muted">No goals yet. A goal is a meaningful outcome with a deadline.</p>
+          <div className="border border-dashed border-ruling p-8 text-center flex flex-col items-center gap-4">
+            <div className="space-y-2 max-w-[42ch]">
+              <p className="font-serif text-lg">No goals yet</p>
+              <p className="text-sm text-ink-muted">Create a goal first, then you can add tasks inside it. That is why you are seeing empty task counts right now.</p>
+            </div>
+            <NewGoalDialog areaId={areaId} />
           </div>
         ) : (
           <div className="flex flex-col gap-6">
@@ -180,7 +184,7 @@ function NewTaskInline({ goalId, areaId }: { goalId: string; areaId: string }) {
       <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A task…" maxLength={200} className="bg-paper border-ruling flex-1" />
       <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
       <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper">
-        <Plus className="size-3.5 mr-1" /> Add
+        <Plus className="size-3.5 mr-1" /> Add task
       </Button>
     </form>
   );
