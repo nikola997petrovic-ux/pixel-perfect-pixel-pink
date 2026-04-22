@@ -162,7 +162,7 @@ export function useCreateTask() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { goal_id?: string | null; area_id: string; title: string; due_date?: string | null; notes?: string }) => {
+    mutationFn: async (input: { goal_id?: string | null; area_id: string; title: string; due_date?: string | null; notes?: string; recurrence?: "daily" | null }) => {
       if (!user) throw new Error("Not signed in");
       const { data, error } = await supabase.from("tasks").insert({ ...input, user_id: user.id }).select().single();
       if (error) throw error;
@@ -181,10 +181,13 @@ export function useToggleTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, completed, area_id }: { id: string; completed: boolean; area_id: string }) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update({ completed, completed_at: completed ? new Date().toISOString() : null })
-        .eq("id", id);
+      const today = new Date().toISOString().slice(0, 10);
+      const patch: Record<string, unknown> = {
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+      };
+      if (completed) patch.last_completed_date = today;
+      const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
       return area_id;
     },
