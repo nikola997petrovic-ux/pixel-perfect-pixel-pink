@@ -182,11 +182,11 @@ export function useToggleTask() {
   return useMutation({
     mutationFn: async ({ id, completed, area_id }: { id: string; completed: boolean; area_id: string }) => {
       const today = new Date().toISOString().slice(0, 10);
-      const patch: Record<string, unknown> = {
+      const patch = {
         completed,
         completed_at: completed ? new Date().toISOString() : null,
+        ...(completed ? { last_completed_date: today } : {}),
       };
-      if (completed) patch.last_completed_date = today;
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
       return area_id;
