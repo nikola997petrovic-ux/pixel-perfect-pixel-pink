@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAreas, useAllTasks, useStreaks, useDeleteArea } from "@/lib/api";
+import { AreaQuickTaskForm } from "@/components/AreaQuickTaskForm";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
 import { EditAreaDialog } from "@/components/EditAreaDialog";
 import { Trash2 } from "lucide-react";
@@ -85,6 +86,7 @@ function AreasPage() {
                 <div className="w-full h-[2px] bg-ruling overflow-hidden">
                   <div className="h-full" style={{ width: `${s.pct}%`, backgroundColor: a.color }} />
                 </div>
+                <AreaQuickTaskForm areaId={a.id} />
               </div>
             );
           })}
