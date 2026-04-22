@@ -25,7 +25,7 @@ export type Goal = {
 export type Task = {
   id: string;
   user_id: string;
-  goal_id: string;
+  goal_id: string | null;
   area_id: string;
   title: string;
   due_date: string | null;
