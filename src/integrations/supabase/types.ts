@@ -139,7 +139,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           due_date: string | null
-          goal_id: string
+          goal_id: string | null
           id: string
           notes: string | null
           title: string
@@ -152,7 +152,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
-          goal_id: string
+          goal_id?: string | null
           id?: string
           notes?: string | null
           title: string
@@ -165,7 +165,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
-          goal_id?: string
+          goal_id?: string | null
           id?: string
           notes?: string | null
           title?: string
