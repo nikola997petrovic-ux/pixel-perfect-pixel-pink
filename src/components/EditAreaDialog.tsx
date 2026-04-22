@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ const schema = z.object({
   description: z.string().max(300).optional(),
 });
 
-export function EditAreaDialog({ area, trigger }: { area: Area; trigger?: React.ReactNode }) {
+export function EditAreaDialog({ area, trigger }: { area: Area; trigger?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(area.name);
   const [emoji, setEmoji] = useState(area.emoji);
@@ -26,7 +27,7 @@ export function EditAreaDialog({ area, trigger }: { area: Area; trigger?: React.
   const [description, setDescription] = useState(area.description ?? "");
   const update = useUpdateArea();
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     const parsed = schema.safeParse({ name, emoji, color, description });
     if (!parsed.success) {
@@ -66,10 +67,13 @@ export function EditAreaDialog({ area, trigger }: { area: Area; trigger?: React.
             <div className="flex flex-wrap gap-2">
               {emojiChoices.map((e) => (
                 <button
-                  type="button" key={e}
+                  type="button"
+                  key={e}
                   onClick={() => setEmoji(e)}
                   className={`size-9 text-lg flex items-center justify-center border ${emoji === e ? "border-ink bg-paper-light" : "border-ruling"} rounded`}
-                >{e}</button>
+                >
+                  {e}
+                </button>
               ))}
             </div>
           </div>
@@ -78,7 +82,8 @@ export function EditAreaDialog({ area, trigger }: { area: Area; trigger?: React.
             <div className="flex flex-wrap gap-2">
               {colorChoices.map((c) => (
                 <button
-                  type="button" key={c.value}
+                  type="button"
+                  key={c.value}
                   onClick={() => setColor(c.value)}
                   className={`size-8 rounded-full border-2 transition-transform ${color === c.value ? "border-ink scale-110" : "border-transparent"}`}
                   style={{ backgroundColor: c.value }}
@@ -91,9 +96,16 @@ export function EditAreaDialog({ area, trigger }: { area: Area; trigger?: React.
             <Label className="text-xs uppercase tracking-widest text-ink-muted">Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={300} className="bg-paper-light border-ruling" rows={2} />
           </div>
-          <Button type="submit" disabled={update.isPending} className="bg-ink text-paper hover:bg-ink/90">
-            {update.isPending ? "…" : "Save changes"}
-          </Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+            <Button type="button" variant="outline" className="border-ruling text-ink hover:bg-paper-light" asChild>
+              <Link to="/areas/$areaId" params={{ areaId: area.id }} onClick={() => setOpen(false)}>
+                Add tasks
+              </Link>
+            </Button>
+            <Button type="submit" disabled={update.isPending} className="bg-ink text-paper hover:bg-ink/90">
+              {update.isPending ? "…" : "Save changes"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
