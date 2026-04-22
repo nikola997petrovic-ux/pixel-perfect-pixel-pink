@@ -36,6 +36,9 @@ export function DashboardView() {
   const dueThisWeek = tasks
     .filter((t) => !t.completed && t.due_date && (isToday(parseISO(t.due_date)) || (isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && !isPast(parseISO(t.due_date)))))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  const unscheduled = tasks
+    .filter((t) => !t.completed && !t.due_date)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.completed).length;
@@ -113,6 +116,18 @@ export function DashboardView() {
           <TaskList tasks={dueThisWeek} areas={areas} />
         )}
       </section>
+
+      {/* Unscheduled */}
+      {unscheduled.length > 0 && (
+        <section className="flex flex-col gap-3 max-w-[800px]">
+          <header className="flex items-baseline justify-between border-b border-ruling pb-3">
+            <h3 className="text-xl font-serif">Unscheduled</h3>
+            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">{unscheduled.length}</span>
+          </header>
+          <p className="text-xs text-ink-muted -mt-1">Tasks without a date. Click a title to set one.</p>
+          <TaskList tasks={unscheduled} areas={areas} />
+        </section>
+      )}
     </div>
   );
 }
