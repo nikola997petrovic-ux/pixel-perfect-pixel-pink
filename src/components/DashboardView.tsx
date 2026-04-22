@@ -1,11 +1,13 @@
 import { format, isToday, isPast, isThisWeek, parseISO } from "date-fns";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useAreas, useAllTasks, useStreaks, useToggleTask } from "@/lib/api";
+import { useMemo, useState, useRef, type FormEvent } from "react";
+import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask } from "@/lib/api";
 import type { Area, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
-import { Plus } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { toast } from "sonner";
 
 export function DashboardView() {
   const { data: areas = [], isLoading: la } = useAreas();
@@ -161,42 +163,98 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
 }
 
 export function TaskList({ tasks, areas, overdue = false }: { tasks: Task[]; areas: Area[]; overdue?: boolean }) {
-  const toggle = useToggleTask();
   const areaMap = new Map(areas.map((a) => [a.id, a]));
   return (
     <div className="flex flex-col">
-      {tasks.map((t) => {
-        const a = areaMap.get(t.area_id);
-        const due = t.due_date ? parseISO(t.due_date) : null;
-        const dueLabel = due ? (isToday(due) ? "Today" : format(due, "EEE, MMM d")) : "Unscheduled";
-        return (
-          <div
-            key={t.id}
-            className="group flex items-center justify-between gap-4 py-3.5 border-b border-ruling border-dashed last:border-0 hover:bg-paper-light/60 transition-colors -mx-3 md:-mx-4 px-3 md:px-4"
-          >
-            <div className="flex items-center gap-4 min-w-0 flex-1">
-              <Checkbox
-                checked={t.completed}
-                onCheckedChange={(c) => toggle.mutate({ id: t.id, area_id: t.area_id, completed: !!c })}
-                className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
-              />
-              <span className={`text-sm md:text-base text-ink truncate ${t.completed ? "line-through text-ink-muted" : ""}`}>
-                {t.title}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 md:gap-6 shrink-0">
-              {a && (
-                <span className="text-[10px] md:text-xs tracking-widest uppercase truncate max-w-[80px] md:max-w-none" style={{ color: a.color }}>
-                  {a.name}
-                </span>
-              )}
-              <span className={`text-xs tabular-nums min-w-[64px] md:min-w-[80px] text-right ${overdue ? "text-overdue" : "text-ink-muted"}`}>
-                {dueLabel}
-              </span>
-            </div>
-          </div>
-        );
-      })}
+      {tasks.map((t) => (
+        <TaskRow key={t.id} task={t} area={areaMap.get(t.area_id)} overdue={overdue} />
+      ))}
+    </div>
+  );
+}
+
+function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: boolean }) {
+  const toggle = useToggleTask();
+  const del = useDeleteTask();
+  const update = useUpdateTask();
+
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [due, setDue] = useState(task.due_date ?? "");
+  const dateRef = useRef<HTMLInputElement>(null);
+
+  const dueDate = task.due_date ? parseISO(task.due_date) : null;
+  const dueLabel = dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "EEE, MMM d")) : "Unscheduled";
+
+  const startEdit = () => {
+    setTitle(task.title);
+    setDue(task.due_date ?? "");
+    setEditing(true);
+  };
+  const cancelEdit = () => setEditing(false);
+  const saveEdit = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = title.trim();
+    if (!trimmed) { toast.error("Title required"); return; }
+    if (trimmed.length > 200) { toast.error("Title too long"); return; }
+    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null });
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <form
+        onSubmit={saveEdit}
+        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 py-3 border-b border-ruling border-dashed last:border-0 -mx-3 md:-mx-4 px-3 md:px-4 bg-paper-light/60"
+      >
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus className="bg-paper border-ruling flex-1" />
+        <Input ref={dateRef} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
+        <div className="flex items-center gap-1">
+          <button type="submit" className="p-2 text-ink hover:bg-paper rounded" aria-label="Save">
+            <Check className="size-4" />
+          </button>
+          <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper rounded" aria-label="Cancel">
+            <X className="size-4" />
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="group flex items-center justify-between gap-4 py-3.5 border-b border-ruling border-dashed last:border-0 hover:bg-paper-light/60 transition-colors -mx-3 md:-mx-4 px-3 md:px-4">
+      <div className="flex items-center gap-4 min-w-0 flex-1">
+        <Checkbox
+          checked={task.completed}
+          onCheckedChange={(c) => toggle.mutate({ id: task.id, area_id: task.area_id, completed: !!c })}
+          className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
+        />
+        <button
+          type="button"
+          onClick={startEdit}
+          className={`text-sm md:text-base text-left truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"} hover:underline underline-offset-4 decoration-dotted`}
+        >
+          {task.title}
+        </button>
+      </div>
+      <div className="flex items-center gap-3 md:gap-4 shrink-0">
+        {area && (
+          <span className="text-[10px] md:text-xs tracking-widest uppercase truncate max-w-[80px] md:max-w-none" style={{ color: area.color }}>
+            {area.name}
+          </span>
+        )}
+        <span className={`text-xs tabular-nums min-w-[64px] md:min-w-[80px] text-right ${overdue ? "text-overdue" : "text-ink-muted"}`}>
+          {dueLabel}
+        </span>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button type="button" onClick={startEdit} className="p-1.5 text-ink-muted hover:text-ink rounded" aria-label="Edit task">
+            <Pencil className="size-3.5" />
+          </button>
+          <button type="button" onClick={() => del.mutate({ id: task.id, area_id: task.area_id })} className="p-1.5 text-ink-muted hover:text-overdue rounded" aria-label="Delete task">
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
