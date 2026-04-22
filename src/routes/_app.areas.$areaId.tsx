@@ -173,7 +173,7 @@ function TaskListInline({ tasks, accent }: { tasks: Task[]; accent: string }) {
   );
 }
 
-function NewTaskInline({ goalId, areaId }: { goalId: string; areaId: string }) {
+function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: string | null; areaId: string; placeholder?: string }) {
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   const create = useCreateTask();
@@ -187,7 +187,7 @@ function NewTaskInline({ goalId, areaId }: { goalId: string; areaId: string }) {
   };
   return (
     <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-ruling/60 border-dashed">
-      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A task…" maxLength={200} className="bg-paper border-ruling flex-1" />
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={placeholder} maxLength={200} className="bg-paper border-ruling flex-1" />
       <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
       <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper">
         <Plus className="size-3.5 mr-1" /> Add task
