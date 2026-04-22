@@ -9,38 +9,119 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
+import { Route as AppAreasRouteImport } from './routes/_app.areas'
+import { Route as AppAreasAreaIdRouteImport } from './routes/_app.areas.$areaId'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAreasRoute = AppAreasRouteImport.update({
+  id: '/areas',
+  path: '/areas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAreasAreaIdRoute = AppAreasAreaIdRouteImport.update({
+  id: '/$areaId',
+  path: '/$areaId',
+  getParentRoute: () => AppAreasRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/areas': typeof AppAreasRouteWithChildren
+  '/calendar': typeof AppCalendarRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/areas/$areaId': typeof AppAreasAreaIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/areas': typeof AppAreasRouteWithChildren
+  '/calendar': typeof AppCalendarRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/areas/$areaId': typeof AppAreasAreaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_app/areas': typeof AppAreasRouteWithChildren
+  '/_app/calendar': typeof AppCalendarRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/areas/$areaId': typeof AppAreasAreaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/areas'
+    | '/calendar'
+    | '/dashboard'
+    | '/areas/$areaId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/auth' | '/areas' | '/calendar' | '/dashboard' | '/areas/$areaId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/areas'
+    | '/_app/calendar'
+    | '/_app/dashboard'
+    | '/_app/areas/$areaId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,21 +129,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/areas': {
+      id: '/_app/areas'
+      path: '/areas'
+      fullPath: '/areas'
+      preLoaderRoute: typeof AppAreasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/areas/$areaId': {
+      id: '/_app/areas/$areaId'
+      path: '/$areaId'
+      fullPath: '/areas/$areaId'
+      preLoaderRoute: typeof AppAreasAreaIdRouteImport
+      parentRoute: typeof AppAreasRoute
+    }
   }
 }
 
+interface AppAreasRouteChildren {
+  AppAreasAreaIdRoute: typeof AppAreasAreaIdRoute
+}
+
+const AppAreasRouteChildren: AppAreasRouteChildren = {
+  AppAreasAreaIdRoute: AppAreasAreaIdRoute,
+}
+
+const AppAreasRouteWithChildren = AppAreasRoute._addFileChildren(
+  AppAreasRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAreasRoute: typeof AppAreasRouteWithChildren
+  AppCalendarRoute: typeof AppCalendarRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAreasRoute: AppAreasRouteWithChildren,
+  AppCalendarRoute: AppCalendarRoute,
+  AppDashboardRoute: AppDashboardRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
