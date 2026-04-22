@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { EditAreaDialog } from "@/components/EditAreaDialog";
 
 export const Route = createFileRoute("/_app/areas/$areaId")({
   loader: async ({ params }) => {
