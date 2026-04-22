@@ -229,3 +229,23 @@ export function useDeleteTask() {
     onError: (e: any) => toast.error(e.message),
   });
 }
+
+export function useUpdateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      area_id,
+      ...patch
+    }: { id: string; area_id: string } & Partial<Pick<Task, "title" | "due_date" | "notes" | "goal_id">>) => {
+      const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+      if (error) throw error;
+      return area_id;
+    },
+    onSuccess: (areaId) => {
+      qc.invalidateQueries({ queryKey: qk.tasks(areaId) });
+      qc.invalidateQueries({ queryKey: qk.allTasks });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+}
