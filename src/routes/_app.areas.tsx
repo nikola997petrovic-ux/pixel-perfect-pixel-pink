@@ -86,7 +86,7 @@ function AreasPage() {
                 <div className="w-full h-[2px] bg-ruling overflow-hidden">
                   <div className="h-full" style={{ width: `${s.pct}%`, backgroundColor: a.color }} />
                 </div>
-                <AreaQuickTaskForm areaId={a.id} />
+                <AreaQuickTaskForm areaId={a.id} accent={a.color} />
               </div>
             );
           })}
