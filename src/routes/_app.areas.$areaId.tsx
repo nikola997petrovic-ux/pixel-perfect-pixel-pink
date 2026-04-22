@@ -52,7 +52,10 @@ function AreaDetail() {
       </Link>
 
       <header className="flex flex-col gap-4 max-w-[65ch]">
-        <p className="text-xs tracking-widest uppercase" style={{ color: a.color }}>{a.emoji} {a.name}</p>
+        <div className="flex items-start justify-between gap-4">
+          <p className="text-xs tracking-widest uppercase" style={{ color: a.color }}>{a.emoji} {a.name}</p>
+          <EditAreaDialog area={a} />
+        </div>
         <h2 className="text-3xl md:text-4xl leading-tight font-serif">{a.description || "An ongoing chapter."}</h2>
         <div className="flex gap-8 text-sm text-ink-muted pt-2">
           <span><span className="text-ink tabular-nums">{pct}%</span> capacity</span>
