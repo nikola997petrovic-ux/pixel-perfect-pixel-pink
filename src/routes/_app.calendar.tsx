@@ -1,13 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval,
-  isSameMonth, isSameDay, isToday, isPast, parseISO, addMonths, subMonths,
+  isSameMonth, isToday, isPast, addMonths, subMonths,
 } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useAreas, useAllTasks, useToggleTask } from "@/lib/api";
+import { ChevronLeft, ChevronRight, CalendarPlus, X } from "lucide-react";
+import { useAreas, useAllTasks, useToggleTask, useUpdateTask } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -23,6 +24,7 @@ function CalendarPage() {
   const { data: areas = [] } = useAreas();
   const { data: tasks = [] } = useAllTasks();
   const toggle = useToggleTask();
+  const update = useUpdateTask();
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -46,6 +48,7 @@ function CalendarPage() {
 
   const unscheduled = tasks.filter((t) => !t.due_date && !t.completed);
   const selectedTasks = selected ? tasksByDay.get(format(selected, "yyyy-MM-dd")) ?? [] : [];
+  const selectedKey = selected ? format(selected, "yyyy-MM-dd") : null;
 
   return (
     <div className="py-10 md:py-12 px-4 md:px-16 lg:px-24 flex flex-col gap-8 max-w-[1200px]">
@@ -105,19 +108,24 @@ function CalendarPage() {
       {unscheduled.length > 0 && (
         <section className="flex flex-col gap-3 px-2 md:px-0 mt-4">
           <h3 className="text-xs uppercase tracking-widest text-ink-muted border-b border-ruling pb-2">Unscheduled · {unscheduled.length}</h3>
+          <p className="text-xs text-ink-muted -mt-1">Tap a day above first, then schedule from inside.</p>
           <div className="flex flex-col">
             {unscheduled.map((t) => {
               const a = areaMap.get(t.area_id);
               return (
-                <Link
-                  key={t.id}
-                  to="/areas/$areaId"
-                  params={{ areaId: t.area_id }}
-                  className="flex justify-between items-center py-3 border-b border-dashed border-ruling/60 last:border-0"
-                >
-                  <span className="text-sm text-ink truncate">{t.title}</span>
+                <div key={t.id} className="flex justify-between items-center gap-3 py-3 border-b border-dashed border-ruling/60 last:border-0">
+                  <span className="text-sm text-ink truncate flex-1">{t.title}</span>
                   {a && <span className="text-[10px] uppercase tracking-widest" style={{ color: a.color }}>{a.name}</span>}
-                </Link>
+                  <input
+                    type="date"
+                    aria-label={`Schedule ${t.title}`}
+                    className="bg-paper border border-ruling rounded px-2 py-1 text-xs"
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v) update.mutate({ id: t.id, area_id: t.area_id, due_date: v });
+                    }}
+                  />
+                </div>
               );
             })}
           </div>
@@ -147,10 +155,52 @@ function CalendarPage() {
                     <p className={`text-sm ${t.completed ? "line-through text-ink-muted" : overdue ? "text-overdue" : "text-ink"}`}>{t.title}</p>
                     {a && <p className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: a.color }}>{a.emoji} {a.name}</p>}
                   </div>
+                  <input
+                    type="date"
+                    value={t.due_date ?? ""}
+                    aria-label="Reschedule"
+                    className="bg-paper border border-ruling rounded px-2 py-1 text-xs"
+                    onChange={(e) => update.mutate({ id: t.id, area_id: t.area_id, due_date: e.target.value || null })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => update.mutate({ id: t.id, area_id: t.area_id, due_date: null })}
+                    className="text-ink-muted hover:text-overdue p-1"
+                    aria-label="Unschedule"
+                  >
+                    <X className="size-3.5" />
+                  </button>
                 </div>
               );
             })}
           </div>
+
+          {unscheduled.length > 0 && selectedKey && (
+            <div className="mt-8 flex flex-col gap-2">
+              <h4 className="text-xs uppercase tracking-widest text-ink-muted border-b border-ruling pb-2">
+                Schedule onto this day
+              </h4>
+              {unscheduled.map((t) => {
+                const a = areaMap.get(t.area_id);
+                return (
+                  <div key={t.id} className="flex items-center justify-between gap-3 py-2 border-b border-dashed border-ruling/60 last:border-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-ink truncate">{t.title}</p>
+                      {a && <p className="text-[10px] uppercase tracking-widest" style={{ color: a.color }}>{a.emoji} {a.name}</p>}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-ruling text-ink hover:bg-paper-light"
+                      onClick={() => update.mutate({ id: t.id, area_id: t.area_id, due_date: selectedKey })}
+                    >
+                      <CalendarPlus className="size-3.5 mr-1" /> Add
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </div>
