@@ -32,6 +32,8 @@ export type Task = {
   completed: boolean;
   completed_at: string | null;
   notes: string | null;
+  recurrence: "daily" | null;
+  last_completed_date: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -36,8 +36,9 @@ export function DashboardView() {
   const dueThisWeek = tasks
     .filter((t) => !t.completed && t.due_date && (isToday(parseISO(t.due_date)) || (isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && !isPast(parseISO(t.due_date)))))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  const dailies = tasks.filter((t) => t.recurrence === "daily");
   const unscheduled = tasks
-    .filter((t) => !t.completed && !t.due_date)
+    .filter((t) => !t.completed && !t.due_date && t.recurrence !== "daily")
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const totalTasks = tasks.length;
@@ -116,6 +117,19 @@ export function DashboardView() {
           <TaskList tasks={dueThisWeek} areas={areas} />
         )}
       </section>
+
+      {/* Daily rituals */}
+      {dailies.length > 0 && (
+        <section className="flex flex-col gap-3 max-w-[800px]">
+          <header className="flex items-baseline justify-between border-b border-ruling pb-3">
+            <h3 className="text-xl font-serif">Daily Rituals</h3>
+            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">
+              {dailies.filter((t) => t.completed).length}/{dailies.length} today
+            </span>
+          </header>
+          <TaskList tasks={dailies} areas={areas} />
+        </section>
+      )}
 
       {/* Unscheduled */}
       {unscheduled.length > 0 && (

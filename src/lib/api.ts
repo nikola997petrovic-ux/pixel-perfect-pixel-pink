@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { qk, type Area, type Goal, type Task, type Streak } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { applyRecurrenceMany } from "@/lib/recurrence";
 
 export function useAreas() {
   return useQuery({
@@ -32,7 +33,7 @@ export function useAllTasks() {
     queryFn: async () => {
       const { data, error } = await supabase.from("tasks").select("*");
       if (error) throw error;
-      return (data ?? []) as Task[];
+      return applyRecurrenceMany((data ?? []) as Task[]);
     },
   });
 }
@@ -55,7 +56,7 @@ export function useTasksForArea(areaId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase.from("tasks").select("*").eq("area_id", areaId!);
       if (error) throw error;
-      return (data ?? []) as Task[];
+      return applyRecurrenceMany((data ?? []) as Task[]);
     },
     enabled: !!areaId,
   });
@@ -162,7 +163,7 @@ export function useCreateTask() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { goal_id?: string | null; area_id: string; title: string; due_date?: string | null; notes?: string }) => {
+    mutationFn: async (input: { goal_id?: string | null; area_id: string; title: string; due_date?: string | null; notes?: string; recurrence?: "daily" | null }) => {
       if (!user) throw new Error("Not signed in");
       const { data, error } = await supabase.from("tasks").insert({ ...input, user_id: user.id }).select().single();
       if (error) throw error;
@@ -181,10 +182,13 @@ export function useToggleTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, completed, area_id }: { id: string; completed: boolean; area_id: string }) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update({ completed, completed_at: completed ? new Date().toISOString() : null })
-        .eq("id", id);
+      const today = new Date().toISOString().slice(0, 10);
+      const patch = {
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+        ...(completed ? { last_completed_date: today } : {}),
+      };
+      const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
       return area_id;
     },

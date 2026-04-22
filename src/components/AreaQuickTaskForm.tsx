@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { parseISO, isPast, isToday, format } from "date-fns";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateTask, useTasksForArea, useToggleTask, useDeleteTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: string }) {
   const [title, setTitle] = useState("");
+  const [daily, setDaily] = useState(false);
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask();
@@ -33,9 +34,11 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
       goal_id: null,
       title: trimmedTitle,
       due_date: null,
+      recurrence: daily ? "daily" : null,
     });
 
     setTitle("");
+    setDaily(false);
   };
 
   return (
@@ -59,6 +62,9 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
                   className={`text-sm flex-1 truncate ${t.completed ? "line-through text-ink-muted" : "text-ink"}`}
                 >
                   {t.title}
+                  {t.recurrence === "daily" && (
+                    <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" aria-label="Daily" />
+                  )}
                 </span>
                 {due && (
                   <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
@@ -89,6 +95,15 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
           maxLength={200}
           className="bg-paper border-ruling flex-1"
         />
+        <button
+          type="button"
+          onClick={() => setDaily((d) => !d)}
+          aria-pressed={daily}
+          title={daily ? "Daily — repeats every day" : "Mark as daily"}
+          className={`p-2 border rounded transition-colors ${daily ? "border-ink bg-paper-light text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
+        >
+          <Repeat className="size-3.5" />
+        </button>
         <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper" disabled={createTask.isPending}>
           <Plus className="size-3.5" />
           Add task
