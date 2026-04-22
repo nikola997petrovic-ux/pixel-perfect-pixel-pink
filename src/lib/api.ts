@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { qk, type Area, type Goal, type Task, type Streak } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { applyRecurrenceMany } from "@/lib/recurrence";
 
 export function useAreas() {
   return useQuery({
@@ -32,7 +33,7 @@ export function useAllTasks() {
     queryFn: async () => {
       const { data, error } = await supabase.from("tasks").select("*");
       if (error) throw error;
-      return (data ?? []) as Task[];
+      return applyRecurrenceMany((data ?? []) as Task[]);
     },
   });
 }
@@ -55,7 +56,7 @@ export function useTasksForArea(areaId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase.from("tasks").select("*").eq("area_id", areaId!);
       if (error) throw error;
-      return (data ?? []) as Task[];
+      return applyRecurrenceMany((data ?? []) as Task[]);
     },
     enabled: !!areaId,
   });
