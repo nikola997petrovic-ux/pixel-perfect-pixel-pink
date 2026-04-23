@@ -116,7 +116,7 @@ export function useCreateGoal() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { area_id: string; title: string; description?: string; target_date?: string | null }) => {
+    mutationFn: async (input: { area_id: string; title: string; description?: string; target_date?: string | null; target_count?: number | null; unit?: string | null }) => {
       if (!user) throw new Error("Not signed in");
       const { data, error } = await supabase.from("goals").insert({ ...input, user_id: user.id }).select().single();
       if (error) throw error;
@@ -129,7 +129,6 @@ export function useCreateGoal() {
     onError: (e: any) => toast.error(e.message),
   });
 }
-
 export function useUpdateGoal() {
   const qc = useQueryClient();
   return useMutation({

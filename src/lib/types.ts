@@ -17,6 +17,8 @@ export type Goal = {
   title: string;
   description: string | null;
   target_date: string | null;
+  target_count: number | null;
+  unit: string | null;
   status: "active" | "completed" | "paused";
   created_at: string;
   updated_at: string;

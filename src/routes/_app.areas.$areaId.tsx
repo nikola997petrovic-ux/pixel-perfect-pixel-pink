@@ -101,7 +101,10 @@ function AreaDetail() {
 function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: string }) {
   const total = tasks.length;
   const done = tasks.filter((t) => t.completed).length;
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const hasNumeric = typeof goal.target_count === "number" && goal.target_count > 0;
+  const numericPct = hasNumeric ? Math.min(100, Math.round((done / (goal.target_count as number)) * 100)) : 0;
+  const taskPct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const pct = hasNumeric ? numericPct : taskPct;
   const del = useDeleteGoal();
 
   return (
@@ -121,10 +124,17 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
         </Button>
       </div>
 
+      {hasNumeric && (
+        <div className="flex items-baseline gap-2">
+          <span className="font-serif text-3xl tabular-nums" style={{ color: accent }}>{done}</span>
+          <span className="text-ink-muted text-sm tabular-nums">/ {goal.target_count}{goal.unit ? ` ${goal.unit}` : ""}</span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <div className="flex justify-between text-xs text-ink-muted tabular-nums">
           <span>{pct}%</span>
-          <span>{done}/{total}</span>
+          <span>{hasNumeric ? `${done}/${goal.target_count}${goal.unit ? ` ${goal.unit}` : ""}` : `${done}/${total}`}</span>
         </div>
         <div className="w-full h-[1.5px] bg-ruling overflow-hidden">
           <div className="h-full" style={{ width: `${pct}%`, backgroundColor: accent }} />
@@ -200,6 +210,8 @@ const goalSchema = z.object({
   title: z.string().trim().min(1).max(120),
   description: z.string().max(500).optional(),
   target_date: z.string().optional(),
+  target_count: z.string().optional(),
+  unit: z.string().max(40).optional(),
 });
 
 function NewGoalDialog({ areaId }: { areaId: string }) {
@@ -207,18 +219,29 @@ function NewGoalDialog({ areaId }: { areaId: string }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [target, setTarget] = useState("");
+  const [count, setCount] = useState("");
+  const [unit, setUnit] = useState("");
   const create = useCreateGoal();
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = goalSchema.safeParse({ title, description, target_date: target });
+    const parsed = goalSchema.safeParse({ title, description, target_date: target, target_count: count, unit });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
-    await create.mutateAsync({ area_id: areaId, title: parsed.data.title, description: parsed.data.description, target_date: target || null });
-    setOpen(false); setTitle(""); setDescription(""); setTarget("");
+    const target_count = count ? Number(count) : null;
+    if (count && (!Number.isFinite(target_count!) || target_count! <= 0)) { toast.error("Target must be a positive number"); return; }
+    await create.mutateAsync({
+      area_id: areaId,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      target_date: target || null,
+      target_count,
+      unit: unit.trim() || null,
+    });
+    setOpen(false); setTitle(""); setDescription(""); setTarget(""); setCount(""); setUnit("");
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-ink text-paper hover:bg-ink/90"><Plus className="size-3.5 mr-1" />New Goal</Button>
+        <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90"><Plus className="size-3.5 mr-1" />New Goal</Button>
       </DialogTrigger>
       <DialogContent className="bg-paper border-ruling">
         <DialogHeader><DialogTitle className="font-serif text-2xl">A new goal</DialogTitle></DialogHeader>
@@ -231,11 +254,22 @@ function NewGoalDialog({ areaId }: { areaId: string }) {
             <Label className="text-xs uppercase tracking-widest text-ink-muted">Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} rows={2} className="bg-paper-light border-ruling" />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs uppercase tracking-widest text-ink-muted">Target #</Label>
+              <Input type="number" min="1" value={count} onChange={(e) => setCount(e.target.value)} placeholder="100" className="bg-paper-light border-ruling" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs uppercase tracking-widest text-ink-muted">Unit</Label>
+              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="reactions" maxLength={40} className="bg-paper-light border-ruling" />
+            </div>
+          </div>
+          <p className="text-[11px] text-ink-muted -mt-1">Each completed task under this goal counts as +1 toward the target.</p>
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs uppercase tracking-widest text-ink-muted">Target date</Label>
             <Input type="date" value={target} onChange={(e) => setTarget(e.target.value)} className="bg-paper-light border-ruling" />
           </div>
-          <Button type="submit" disabled={create.isPending} className="bg-ink text-paper hover:bg-ink/90">Add goal</Button>
+          <Button type="submit" disabled={create.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90">Add goal</Button>
         </form>
       </DialogContent>
     </Dialog>

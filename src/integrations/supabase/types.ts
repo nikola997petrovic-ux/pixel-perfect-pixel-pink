@@ -54,8 +54,10 @@ export type Database = {
           description: string | null
           id: string
           status: string
+          target_count: number | null
           target_date: string | null
           title: string
+          unit: string | null
           updated_at: string
           user_id: string
         }
@@ -65,8 +67,10 @@ export type Database = {
           description?: string | null
           id?: string
           status?: string
+          target_count?: number | null
           target_date?: string | null
           title: string
+          unit?: string | null
           updated_at?: string
           user_id: string
         }
@@ -76,8 +80,10 @@ export type Database = {
           description?: string | null
           id?: string
           status?: string
+          target_count?: number | null
           target_date?: string | null
           title?: string
+          unit?: string | null
           updated_at?: string
           user_id?: string
         }
