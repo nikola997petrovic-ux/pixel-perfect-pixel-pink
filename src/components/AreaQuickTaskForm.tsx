@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import { parseISO, isPast, isToday, format } from "date-fns";
 import { Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "sonner";
