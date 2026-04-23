@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: string }) {
   const [title, setTitle] = useState("");
   const [daily, setDaily] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask();
