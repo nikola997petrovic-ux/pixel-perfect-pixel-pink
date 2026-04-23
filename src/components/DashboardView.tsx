@@ -1,10 +1,11 @@
-import { format, isToday, isPast, isThisWeek, parseISO } from "date-fns";
+import { format, isToday, isPast, isThisWeek, isTomorrow, parseISO, addDays } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
 import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask } from "@/lib/api";
 import type { Area, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
 import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ export function DashboardView() {
   const { data: streaks = [] } = useStreaks();
 
   const today = format(new Date(), "EEEE, MMMM d");
+  const tomorrowKey = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
   const byArea = useMemo(() => {
     const map = new Map<string, { total: number; done: number }>();
@@ -37,12 +39,25 @@ export function DashboardView() {
     .filter((t) => !t.completed && t.due_date && (isToday(parseISO(t.due_date)) || (isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && !isPast(parseISO(t.due_date)))))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
   const dailies = tasks.filter((t) => t.recurrence === "daily");
+  // Tomorrow: tasks dated for tomorrow + all daily rituals (they recur, so they appear again tomorrow)
+  const tomorrowDated = tasks.filter((t) => t.due_date === tomorrowKey && t.recurrence !== "daily");
+  const tomorrow = [...tomorrowDated, ...dailies].sort((a, b) => a.title.localeCompare(b.title));
   const unscheduled = tasks
     .filter((t) => !t.completed && !t.due_date && t.recurrence !== "daily")
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.completed).length;
+
+  type TabKey = "week" | "tomorrow" | "daily" | "unscheduled";
+  const tabDefs: { key: TabKey; label: string; count: number; visible: boolean }[] = [
+    { key: "week", label: "This Week", count: dueThisWeek.length, visible: true },
+    { key: "tomorrow", label: "Tomorrow", count: tomorrow.length, visible: true },
+    { key: "daily", label: "Daily Rituals", count: dailies.length, visible: dailies.length > 0 },
+    { key: "unscheduled", label: "Unscheduled", count: unscheduled.length, visible: unscheduled.length > 0 },
+  ];
+  const visibleTabs = tabDefs.filter((t) => t.visible);
+  const [activeTab, setActiveTab] = useState<TabKey>("week");
 
   return (
     <div className="py-10 md:py-12 px-6 md:px-16 lg:px-24 flex flex-col gap-14 max-w-[1200px]">
@@ -103,45 +118,65 @@ export function DashboardView() {
         </section>
       )}
 
-      {/* Imminent intentions */}
-      <section className="flex flex-col gap-3 max-w-[800px]">
-        <header className="flex items-baseline justify-between border-b border-ruling pb-3">
-          <h3 className="text-xl font-serif">Imminent Intentions</h3>
-          <span className="text-xs text-ink-muted uppercase tracking-widest">For the week</span>
+      {/* Tabbed task views */}
+      <section className="flex flex-col gap-4 max-w-[900px]">
+        <header className="border-b border-ruling pb-3">
+          <h3 className="text-xl font-serif">Intentions</h3>
         </header>
-        {lt ? (
-          <p className="text-sm text-ink-muted">…</p>
-        ) : dueThisWeek.length === 0 ? (
-          <p className="text-sm text-ink-muted py-4">Nothing due this week. A clear horizon.</p>
-        ) : (
-          <TaskList tasks={dueThisWeek} areas={areas} />
-        )}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+          <TabsList className="bg-paper-light border border-ruling rounded-none h-auto p-0 flex flex-wrap justify-start w-full">
+            {visibleTabs.map((t) => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className="rounded-none border-r border-ruling last:border-r-0 data-[state=active]:bg-paper data-[state=active]:shadow-none data-[state=active]:text-ink text-ink-muted px-4 py-2.5 text-xs uppercase tracking-widest font-medium"
+              >
+                {t.label}
+                <span className="ml-2 tabular-nums opacity-60">{t.count}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="week" className="mt-4">
+            {lt ? (
+              <p className="text-sm text-ink-muted">…</p>
+            ) : dueThisWeek.length === 0 ? (
+              <p className="text-sm text-ink-muted py-4">Nothing due this week. A clear horizon.</p>
+            ) : (
+              <TaskList tasks={dueThisWeek} areas={areas} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="tomorrow" className="mt-4">
+            {tomorrow.length === 0 ? (
+              <p className="text-sm text-ink-muted py-4">Tomorrow stands empty.</p>
+            ) : (
+              <>
+                {dailies.length > 0 && (
+                  <p className="text-xs text-ink-muted mb-2">Includes daily rituals — they reset for tomorrow.</p>
+                )}
+                <TaskList tasks={tomorrow} areas={areas} />
+              </>
+            )}
+          </TabsContent>
+
+          {dailies.length > 0 && (
+            <TabsContent value="daily" className="mt-4">
+              <p className="text-xs text-ink-muted mb-2 tabular-nums">
+                {dailies.filter((t) => t.completed).length}/{dailies.length} done today
+              </p>
+              <TaskList tasks={dailies} areas={areas} />
+            </TabsContent>
+          )}
+
+          {unscheduled.length > 0 && (
+            <TabsContent value="unscheduled" className="mt-4">
+              <p className="text-xs text-ink-muted mb-2">Tasks without a date. Click a title to set one.</p>
+              <TaskList tasks={unscheduled} areas={areas} />
+            </TabsContent>
+          )}
+        </Tabs>
       </section>
-
-      {/* Daily rituals */}
-      {dailies.length > 0 && (
-        <section className="flex flex-col gap-3 max-w-[800px]">
-          <header className="flex items-baseline justify-between border-b border-ruling pb-3">
-            <h3 className="text-xl font-serif">Daily Rituals</h3>
-            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">
-              {dailies.filter((t) => t.completed).length}/{dailies.length} today
-            </span>
-          </header>
-          <TaskList tasks={dailies} areas={areas} />
-        </section>
-      )}
-
-      {/* Unscheduled */}
-      {unscheduled.length > 0 && (
-        <section className="flex flex-col gap-3 max-w-[800px]">
-          <header className="flex items-baseline justify-between border-b border-ruling pb-3">
-            <h3 className="text-xl font-serif">Unscheduled</h3>
-            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">{unscheduled.length}</span>
-          </header>
-          <p className="text-xs text-ink-muted -mt-1">Tasks without a date. Click a title to set one.</p>
-          <TaskList tasks={unscheduled} areas={areas} />
-        </section>
-      )}
     </div>
   );
 }
@@ -213,7 +248,15 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
   const dateRef = useRef<HTMLInputElement>(null);
 
   const dueDate = task.due_date ? parseISO(task.due_date) : null;
-  const dueLabel = dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "EEE, MMM d")) : "Unscheduled";
+  const dueLabel = dueDate
+    ? isToday(dueDate)
+      ? "Today"
+      : isTomorrow(dueDate)
+        ? "Tomorrow"
+        : format(dueDate, "EEE, MMM d")
+    : task.recurrence === "daily"
+      ? "Daily"
+      : "Unscheduled";
 
   const startEdit = () => {
     setTitle(task.title);
