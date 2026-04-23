@@ -73,8 +73,8 @@
   --card-foreground: var(--ink);
   --popover: var(--paper-light);
   --popover-foreground: var(--ink);
-  --primary: var(--ink);
-  --primary-foreground: var(--paper);
+  --primary: oklch(0.62 0.13 245);         /* steel blue accent */
+  --primary-foreground: oklch(0.98 0.005 240);
   --secondary: oklch(0.91 0.012 70);
   --secondary-foreground: var(--ink);
   --muted: oklch(0.91 0.012 70);
