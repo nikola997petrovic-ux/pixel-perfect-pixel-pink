@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval,
   isSameMonth, isToday, isPast, addMonths, subMonths,
@@ -31,6 +31,7 @@ function CalendarPage() {
   const create = useCreateTask();
   const [newTitle, setNewTitle] = useState("");
   const [newAreaId, setNewAreaId] = useState<string>("");
+  const newTitleRef = useRef<HTMLInputElement>(null);
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -163,11 +164,13 @@ function CalendarPage() {
                   due_date: selectedKey,
                 });
                 setNewTitle("");
+                newTitleRef.current?.focus();
               }}
               className="flex flex-col gap-2 mt-6 pb-4 border-b border-ruling"
             >
               <p className="text-xs uppercase tracking-widest text-ink-muted">New entry on this day</p>
               <Input
+                ref={newTitleRef}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="Write a task…"

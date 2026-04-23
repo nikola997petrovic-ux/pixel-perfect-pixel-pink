@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import { parseISO, isPast, isToday, format } from "date-fns";
 import { Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: string }) {
   const [title, setTitle] = useState("");
   const [daily, setDaily] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask();
@@ -39,6 +40,7 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
 
     setTitle("");
     setDaily(false);
+    inputRef.current?.focus();
   };
 
   return (
@@ -89,6 +91,7 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
       )}
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <Input
+          ref={inputRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Add a task to this domain…"

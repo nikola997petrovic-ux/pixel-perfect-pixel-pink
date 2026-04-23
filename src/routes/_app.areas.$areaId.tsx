@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
@@ -186,6 +186,7 @@ function TaskListInline({ tasks, accent }: { tasks: Task[]; accent: string }) {
 function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: string | null; areaId: string; placeholder?: string }) {
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const create = useCreateTask();
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,10 +195,11 @@ function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: 
     if (t.length > 200) { toast.error("Title too long"); return; }
     await create.mutateAsync({ goal_id: goalId, area_id: areaId, title: t, due_date: due || null });
     setTitle(""); setDue("");
+    inputRef.current?.focus();
   };
   return (
     <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-ruling/60 border-dashed">
-      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={placeholder} maxLength={200} className="bg-paper border-ruling flex-1" />
+      <Input ref={inputRef} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={placeholder} maxLength={200} className="bg-paper border-ruling flex-1" />
       <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
       <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper">
         <Plus className="size-3.5 mr-1" /> Add task
