@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
