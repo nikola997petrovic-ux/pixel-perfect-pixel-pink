@@ -59,6 +59,25 @@ export function DashboardView() {
   const visibleTabs = tabDefs.filter((t) => t.visible);
   const [activeTab, setActiveTab] = useState<TabKey>("week");
 
+  const ROCKY_QUOTES = [
+    "It ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.",
+    "Going one more round when you don't think you can — that's what makes all the difference.",
+    "Every champion was once a contender that refused to give up.",
+    "The world ain't all sunshine and rainbows. It'll beat you to your knees if you let it.",
+    "Until you start believing in yourself, you ain't gonna have a life.",
+    "If I can change, and you can change, everybody can change.",
+    "Nobody is gonna hit as hard as life. But it ain't about how hard you hit — it's how hard you can get hit and keep moving forward.",
+    "You gotta be willing to take the hits, and not point fingers saying you ain't where you wanna be because of him, or her, or anybody.",
+    "Cowards do that, and that ain't you. You're better than that.",
+    "It's your right to listen to your gut — nobody can tell you no after you've earned the right to be where you want to be.",
+    "Life's not about how hard of a hit you can give. It's about how many you can take, and still keep moving forward.",
+    "The only respect that matters is self-respect. Earn it today.",
+    "You don't need a perfect plan. You need to show up and throw the next punch.",
+    "Pain is temporary. Quitting lasts forever — get up.",
+  ];
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const dailyQuote = ROCKY_QUOTES[dayOfYear % ROCKY_QUOTES.length];
+
   return (
     <div className="py-10 md:py-12 px-6 md:px-16 lg:px-24 flex flex-col gap-14 max-w-[1200px]">
       <header className="flex flex-col gap-3 max-w-[65ch]">
@@ -68,7 +87,7 @@ export function DashboardView() {
             ? "Nobody owes you nothing. Pick your fights — name the domains you'll train in."
             : tasks.length === 0
               ? "The ring's empty. Step in. Throw the first punch — set a goal, log a task."
-              : "It ain't about how hard you hit. Get up, do the work."}
+              : `“${dailyQuote}”`}
         </h2>
         {totalTasks > 0 && (
           <p className="text-sm text-ink-muted">
