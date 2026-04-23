@@ -101,7 +101,10 @@ function AreaDetail() {
 function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: string }) {
   const total = tasks.length;
   const done = tasks.filter((t) => t.completed).length;
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const hasNumeric = typeof goal.target_count === "number" && goal.target_count > 0;
+  const numericPct = hasNumeric ? Math.min(100, Math.round((done / (goal.target_count as number)) * 100)) : 0;
+  const taskPct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const pct = hasNumeric ? numericPct : taskPct;
   const del = useDeleteGoal();
 
   return (
@@ -121,10 +124,17 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
         </Button>
       </div>
 
+      {hasNumeric && (
+        <div className="flex items-baseline gap-2">
+          <span className="font-serif text-3xl tabular-nums" style={{ color: accent }}>{done}</span>
+          <span className="text-ink-muted text-sm tabular-nums">/ {goal.target_count}{goal.unit ? ` ${goal.unit}` : ""}</span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <div className="flex justify-between text-xs text-ink-muted tabular-nums">
           <span>{pct}%</span>
-          <span>{done}/{total}</span>
+          <span>{hasNumeric ? `${done}/${goal.target_count}${goal.unit ? ` ${goal.unit}` : ""}` : `${done}/${total}`}</span>
         </div>
         <div className="w-full h-[1.5px] bg-ruling overflow-hidden">
           <div className="h-full" style={{ width: `${pct}%`, backgroundColor: accent }} />
