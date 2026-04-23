@@ -40,6 +40,7 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
 
     setTitle("");
     setDaily(false);
+    inputRef.current?.focus();
   };
 
   return (
