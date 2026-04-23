@@ -5,10 +5,13 @@ import {
   isSameMonth, isToday, isPast, addMonths, subMonths,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarPlus, X } from "lucide-react";
-import { useAreas, useAllTasks, useToggleTask, useUpdateTask } from "@/lib/api";
+import { useAreas, useAllTasks, useToggleTask, useUpdateTask, useCreateTask } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { type FormEvent } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -25,6 +28,9 @@ function CalendarPage() {
   const { data: tasks = [] } = useAllTasks();
   const toggle = useToggleTask();
   const update = useUpdateTask();
+  const create = useCreateTask();
+  const [newTitle, setNewTitle] = useState("");
+  const [newAreaId, setNewAreaId] = useState<string>("");
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -140,6 +146,51 @@ function CalendarPage() {
               {selectedTasks.length === 0 ? "A blank page." : `${selectedTasks.length} ${selectedTasks.length === 1 ? "entry" : "entries"}`}
             </SheetDescription>
           </SheetHeader>
+
+          {selectedKey && areas.length > 0 && (
+            <form
+              onSubmit={async (e: FormEvent) => {
+                e.preventDefault();
+                const trimmed = newTitle.trim();
+                if (!trimmed) return;
+                if (trimmed.length > 200) { toast.error("Title too long"); return; }
+                const aid = newAreaId || areas[0]?.id;
+                if (!aid) { toast.error("Add a domain first"); return; }
+                await create.mutateAsync({
+                  area_id: aid,
+                  goal_id: null,
+                  title: trimmed,
+                  due_date: selectedKey,
+                });
+                setNewTitle("");
+              }}
+              className="flex flex-col gap-2 mt-6 pb-4 border-b border-ruling"
+            >
+              <p className="text-xs uppercase tracking-widest text-ink-muted">New entry on this day</p>
+              <Input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Write a task…"
+                maxLength={200}
+                className="bg-paper border-ruling"
+              />
+              <div className="flex gap-2">
+                <select
+                  value={newAreaId || areas[0]?.id || ""}
+                  onChange={(e) => setNewAreaId(e.target.value)}
+                  className="bg-paper border border-ruling rounded px-2 py-1.5 text-sm text-ink flex-1 min-w-0"
+                >
+                  {areas.map((a) => (
+                    <option key={a.id} value={a.id}>{a.emoji} {a.name}</option>
+                  ))}
+                </select>
+                <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper-light" disabled={create.isPending}>
+                  <CalendarPlus className="size-3.5 mr-1" /> Add
+                </Button>
+              </div>
+            </form>
+          )}
+
           <div className="flex flex-col mt-6">
             {selectedTasks.map((t) => {
               const a = areaMap.get(t.area_id);
