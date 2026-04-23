@@ -129,6 +129,7 @@ export function useCreateGoal() {
     onError: (e: any) => toast.error(e.message),
   });
 }
+export function useUpdateGoal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, area_id, ...patch }: Partial<Goal> & { id: string; area_id: string }) => {
