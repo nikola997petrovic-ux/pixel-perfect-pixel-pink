@@ -31,6 +31,7 @@ function CalendarPage() {
   const create = useCreateTask();
   const [newTitle, setNewTitle] = useState("");
   const [newAreaId, setNewAreaId] = useState<string>("");
+  const newTitleRef = useRef<HTMLInputElement>(null);
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
