@@ -59,13 +59,13 @@
 :root {
   --radius: 0.5rem;
 
-  /* Editorial Ledger palette */
-  --paper: oklch(0.953 0.012 75);          /* #F3EFEA warm paper */
-  --paper-light: oklch(0.974 0.008 75);    /* #F9F7F4 lighter paper */
-  --ink: oklch(0.21 0.013 60);             /* #1C1A19 letterpress ink */
-  --ink-muted: oklch(0.49 0.012 60);       /* #6C675E */
-  --ruling: oklch(0.875 0.011 70);         /* #DFDCD4 */
-  --overdue: oklch(0.55 0.18 28);          /* warm amber-red */
+  /* Deep Navy + Steel — masculine editorial */
+  --paper: oklch(0.18 0.035 255);          /* deep navy background */
+  --paper-light: oklch(0.235 0.04 255);    /* slightly lifted navy panel */
+  --ink: oklch(0.96 0.012 240);            /* off-white ink */
+  --ink-muted: oklch(0.72 0.03 240);       /* steel gray-blue */
+  --ruling: oklch(0.34 0.045 250);         /* navy rule line */
+  --overdue: oklch(0.66 0.16 35);          /* warm rust-amber */
 
   --background: var(--paper);
   --foreground: var(--ink);
