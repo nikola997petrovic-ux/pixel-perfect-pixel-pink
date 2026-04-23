@@ -59,24 +59,24 @@ export function DashboardView() {
   const visibleTabs = tabDefs.filter((t) => t.visible);
   const [activeTab, setActiveTab] = useState<TabKey>("week");
 
-  const ROCKY_QUOTES = [
-    "It ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.",
-    "Going one more round when you don't think you can — that's what makes all the difference.",
-    "Every champion was once a contender that refused to give up.",
-    "The world ain't all sunshine and rainbows. It'll beat you to your knees if you let it.",
-    "Until you start believing in yourself, you ain't gonna have a life.",
-    "If I can change, and you can change, everybody can change.",
-    "Nobody is gonna hit as hard as life. But it ain't about how hard you hit — it's how hard you can get hit and keep moving forward.",
-    "You gotta be willing to take the hits, and not point fingers saying you ain't where you wanna be because of him, or her, or anybody.",
-    "Cowards do that, and that ain't you. You're better than that.",
-    "It's your right to listen to your gut — nobody can tell you no after you've earned the right to be where you want to be.",
-    "Life's not about how hard of a hit you can give. It's about how many you can take, and still keep moving forward.",
-    "The only respect that matters is self-respect. Earn it today.",
-    "You don't need a perfect plan. You need to show up and throw the next punch.",
-    "Pain is temporary. Quitting lasts forever — get up.",
+  const EXCELLENCE_QUOTES = [
+    "We are what we repeatedly do. Excellence, then, is not an act, but a habit. — Aristotle",
+    "Quality is not an act, it is a habit. — Aristotle",
+    "Excellence is the gradual result of always striving to do better. — Pat Riley",
+    "Success is the sum of small efforts repeated day in and day out. — Robert Collier",
+    "Brilliance is a thousand quiet repetitions nobody sees.",
+    "The difference between ordinary and extraordinary is that little extra — done consistently.",
+    "Discipline is choosing between what you want now and what you want most. — Abraham Lincoln",
+    "Small disciplines repeated with consistency every day lead to great achievements. — John Maxwell",
+    "Habits are the compound interest of self-improvement. — James Clear",
+    "Motivation gets you going. Habit keeps you growing. — John Maxwell",
+    "Mastery is not a function of genius or talent. It is a function of time and intense focus. — Robert Greene",
+    "Excellence is doing ordinary things extraordinarily well. — John W. Gardner",
+    "You don't rise to the level of your goals. You fall to the level of your systems. — James Clear",
+    "Long-term consistency beats short-term intensity. — Bruce Lee",
   ];
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const dailyQuote = ROCKY_QUOTES[dayOfYear % ROCKY_QUOTES.length];
+  const dailyQuote = EXCELLENCE_QUOTES[dayOfYear % EXCELLENCE_QUOTES.length];
 
   return (
     <div className="py-10 md:py-12 px-6 md:px-16 lg:px-24 flex flex-col gap-14 max-w-[1200px]">
@@ -84,9 +84,9 @@ export function DashboardView() {
         <p className="text-xs text-ink-muted tracking-widest uppercase">{today}</p>
         <h2 className="text-3xl md:text-4xl leading-tight font-serif">
           {areas.length === 0
-            ? "Nobody owes you nothing. Pick your fights — name the domains you'll train in."
+            ? "A blank page. Name the domains where you intend to be excellent."
             : tasks.length === 0
-              ? "The ring's empty. Step in. Throw the first punch — set a goal, log a task."
+              ? "Excellence begins with the first small entry. Set a goal, log a task."
               : `“${dailyQuote}”`}
         </h2>
         {totalTasks > 0 && (
