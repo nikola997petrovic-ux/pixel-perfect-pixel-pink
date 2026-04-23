@@ -65,10 +65,10 @@ export function DashboardView() {
         <p className="text-xs text-ink-muted tracking-widest uppercase">{today}</p>
         <h2 className="text-3xl md:text-4xl leading-tight font-serif">
           {areas.length === 0
-            ? "A blank page. Begin by naming the domains you wish to cultivate."
+            ? "Nobody owes you nothing. Pick your fights — name the domains you'll train in."
             : tasks.length === 0
-              ? "Your domains stand ready. Lay down the first goals and tasks."
-              : "A quiet morning. The ink is fresh; your history awaits documentation."}
+              ? "The ring's empty. Step in. Throw the first punch — set a goal, log a task."
+              : "It ain't about how hard you hit. Get up, do the work."}
         </h2>
         {totalTasks > 0 && (
           <p className="text-sm text-ink-muted">
