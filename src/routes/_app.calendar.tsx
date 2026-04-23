@@ -5,10 +5,13 @@ import {
   isSameMonth, isToday, isPast, addMonths, subMonths,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarPlus, X } from "lucide-react";
-import { useAreas, useAllTasks, useToggleTask, useUpdateTask } from "@/lib/api";
+import { useAreas, useAllTasks, useToggleTask, useUpdateTask, useCreateTask } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { type FormEvent } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
