@@ -164,11 +164,13 @@ function CalendarPage() {
                   due_date: selectedKey,
                 });
                 setNewTitle("");
+                newTitleRef.current?.focus();
               }}
               className="flex flex-col gap-2 mt-6 pb-4 border-b border-ruling"
             >
               <p className="text-xs uppercase tracking-widest text-ink-muted">New entry on this day</p>
               <Input
+                ref={newTitleRef}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="Write a task…"
