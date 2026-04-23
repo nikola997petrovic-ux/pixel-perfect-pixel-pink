@@ -91,6 +91,7 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
       )}
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <Input
+          ref={inputRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Add a task to this domain…"
