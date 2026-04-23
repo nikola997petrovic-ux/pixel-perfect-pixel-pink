@@ -28,6 +28,9 @@ function CalendarPage() {
   const { data: tasks = [] } = useAllTasks();
   const toggle = useToggleTask();
   const update = useUpdateTask();
+  const create = useCreateTask();
+  const [newTitle, setNewTitle] = useState("");
+  const [newAreaId, setNewAreaId] = useState<string>("");
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
