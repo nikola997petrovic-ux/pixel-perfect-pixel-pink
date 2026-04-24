@@ -1,14 +1,17 @@
 import { format, isToday, isPast, isThisWeek, isTomorrow, parseISO, addDays } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
-import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask } from "@/lib/api";
+import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
 import type { Area, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
-import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export function DashboardView() {
   const { data: areas = [], isLoading: la } = useAreas();
