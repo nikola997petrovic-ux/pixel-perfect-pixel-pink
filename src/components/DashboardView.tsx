@@ -216,7 +216,7 @@ function SortableDomainGrid({
 }) {
   const reorder = useReorderAreas();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = areas.map((a) => a.id);
@@ -254,19 +254,10 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
   };
   return (
     <div ref={setNodeRef} style={style} className="relative group/card">
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label="Drag to reorder"
-        className="absolute top-2 right-2 z-10 p-1.5 text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-100 transition-opacity touch-none"
-      >
-        <GripVertical className="size-4" />
-      </button>
       <Link
         to="/areas/$areaId"
         params={{ areaId: area.id }}
-        className="bg-paper-light border border-ruling p-6 flex flex-col gap-7 relative hover:border-ink/40 transition-colors group"
+        className="bg-paper-light border border-ruling p-6 flex flex-col gap-7 relative hover:border-ink/40 transition-colors group block"
       >
         <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: area.color }} />
         <div className="flex justify-between items-start gap-3">
@@ -282,12 +273,12 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
             </h4>
           </div>
           {streak && streak.current_streak > 0 ? (
-            <div className="flex flex-col items-end gap-1 shrink-0 mr-6">
+            <div className="flex flex-col items-end gap-1 shrink-0 mr-8">
               <span className="text-xs text-ink-muted">Streak</span>
               <span className="text-sm tabular-nums text-ink">{String(streak.current_streak).padStart(2, "0")} ✦</span>
             </div>
           ) : (
-            <span className="text-xs text-ink-muted shrink-0 mr-6">—</span>
+            <span className="text-xs text-ink-muted shrink-0 mr-8">—</span>
           )}
         </div>
         <div className="flex flex-col gap-2 mt-auto">
@@ -300,6 +291,16 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
           </div>
         </div>
       </Link>
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        onClick={(e) => e.preventDefault()}
+        className="absolute top-2 right-2 z-10 p-2 text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing touch-none md:opacity-0 md:group-hover/card:opacity-100 transition-opacity"
+      >
+        <GripVertical className="size-4" />
+      </button>
     </div>
   );
 }
