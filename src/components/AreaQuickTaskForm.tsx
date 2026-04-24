@@ -76,7 +76,7 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
                 <button
                   type="button"
                   onClick={() => deleteTask.mutate({ id: t.id, area_id: t.area_id })}
-                  className="opacity-0 group-hover:opacity-100 text-ink-muted hover:text-overdue transition-opacity"
+                  className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 text-ink-muted hover:text-overdue transition-opacity"
                   aria-label="Delete task"
                 >
                   <Trash2 className="size-3.5" />

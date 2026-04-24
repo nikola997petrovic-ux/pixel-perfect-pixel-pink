@@ -406,7 +406,7 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
         <span className={`text-xs tabular-nums min-w-[64px] md:min-w-[80px] text-right ${overdue ? "text-overdue" : "text-ink-muted"}`}>
           {dueLabel}
         </span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
           <button type="button" onClick={startEdit} className="p-1.5 text-ink-muted hover:text-ink rounded" aria-label="Edit task">
             <Pencil className="size-3.5" />
           </button>

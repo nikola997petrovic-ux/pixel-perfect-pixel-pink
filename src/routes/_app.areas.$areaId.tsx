@@ -1,13 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { format, parseISO, isPast, isToday } from "date-fns";
-import { ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useAreas, useGoals, useTasksForArea, useStreaks,
-  useCreateGoal, useDeleteGoal, useCreateTask, useToggleTask, useDeleteTask,
+  useCreateGoal, useDeleteGoal, useCreateTask, useToggleTask, useDeleteTask, useUpdateTask,
 } from "@/lib/api";
 import type { Goal, Task } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -149,36 +149,84 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
 }
 
 function TaskListInline({ tasks, accent }: { tasks: Task[]; accent: string }) {
-  const toggle = useToggleTask();
-  const del = useDeleteTask();
   if (tasks.length === 0) return null;
   return (
     <div className="flex flex-col">
-      {tasks.map((t) => {
-        const due = t.due_date ? parseISO(t.due_date) : null;
-        const overdue = due && !t.completed && isPast(due) && !isToday(due);
-        return (
-          <div key={t.id} className="group flex items-center gap-3 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
-            <Checkbox
-              checked={t.completed}
-              onCheckedChange={(c) => toggle.mutate({ id: t.id, area_id: t.area_id, completed: !!c })}
-              className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
-              style={{ accentColor: accent }}
-            />
-            <span className={`text-sm flex-1 truncate ${t.completed ? "line-through text-ink-muted" : "text-ink"}`}>{t.title}</span>
-            <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
-              {due ? (isToday(due) ? "Today" : format(due, "MMM d")) : "—"}
-            </span>
-            <button
-              onClick={() => del.mutate({ id: t.id, area_id: t.area_id })}
-              className="opacity-0 group-hover:opacity-100 text-ink-muted hover:text-overdue transition-opacity"
-              aria-label="Delete task"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          </div>
-        );
-      })}
+      {tasks.map((t) => <TaskRowInline key={t.id} task={t} accent={accent} />)}
+    </div>
+  );
+}
+
+function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
+  const toggle = useToggleTask();
+  const del = useDeleteTask();
+  const update = useUpdateTask();
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [due, setDue] = useState(task.due_date ?? "");
+
+  const dueDate = task.due_date ? parseISO(task.due_date) : null;
+  const overdue = dueDate && !task.completed && isPast(dueDate) && !isToday(dueDate);
+
+  const startEdit = () => { setTitle(task.title); setDue(task.due_date ?? ""); setEditing(true); };
+  const cancelEdit = () => setEditing(false);
+  const saveEdit = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = title.trim();
+    if (!trimmed) { toast.error("Title required"); return; }
+    if (trimmed.length > 200) { toast.error("Title too long"); return; }
+    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null });
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <form onSubmit={saveEdit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={200}
+          autoFocus
+          className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 outline-none focus:border-ink/50"
+        />
+        <input
+          type="date"
+          value={due}
+          onChange={(e) => setDue(e.target.value)}
+          className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm sm:w-40 outline-none focus:border-ink/50"
+        />
+        <div className="flex items-center gap-1">
+          <button type="submit" className="p-2 text-ink hover:bg-paper-light rounded" aria-label="Save">
+            <Check className="size-4" />
+          </button>
+          <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper-light rounded" aria-label="Cancel">
+            <X className="size-4" />
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="group flex items-center gap-3 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
+      <Checkbox
+        checked={task.completed}
+        onCheckedChange={(c) => toggle.mutate({ id: task.id, area_id: task.area_id, completed: !!c })}
+        className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
+        style={{ accentColor: accent }}
+      />
+      <span className={`text-sm flex-1 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>{task.title}</span>
+      <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
+        {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : "—"}
+      </span>
+      <div className="flex items-center gap-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
+        <button onClick={startEdit} className="p-1 text-ink-muted hover:text-ink rounded" aria-label="Edit task">
+          <Pencil className="size-3.5" />
+        </button>
+        <button onClick={() => del.mutate({ id: task.id, area_id: task.area_id })} className="p-1 text-ink-muted hover:text-overdue rounded" aria-label="Delete task">
+          <Trash2 className="size-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
