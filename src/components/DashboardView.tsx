@@ -216,7 +216,7 @@ function SortableDomainGrid({
 }) {
   const reorder = useReorderAreas();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = areas.map((a) => a.id);
