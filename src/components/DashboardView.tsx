@@ -123,9 +123,11 @@ export function DashboardView() {
             <NewAreaDialog />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {areas.map((a) => <DomainCard key={a.id} area={a} stats={byArea.get(a.id)} streak={streakByArea.get(a.id)} />)}
-          </div>
+          <SortableDomainGrid
+            areas={areas}
+            byArea={byArea}
+            streakByArea={streakByArea}
+          />
         )}
       </section>
 
