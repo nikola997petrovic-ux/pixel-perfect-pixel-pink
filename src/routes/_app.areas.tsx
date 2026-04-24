@@ -151,8 +151,4 @@ function SortableAreaCard({
     </div>
   );
 }
-        </div>
-      )}
-    </div>
-  );
-}
+
