@@ -297,7 +297,8 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
         {...listeners}
         aria-label="Drag to reorder"
         onClick={(e) => e.preventDefault()}
-        className="absolute top-2 right-2 z-10 p-2 text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing touch-none md:opacity-0 md:group-hover/card:opacity-100 transition-opacity"
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute top-1.5 right-1.5 z-20 p-2 bg-paper border border-ruling text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing touch-none md:bg-transparent md:border-transparent md:opacity-0 md:group-hover/card:opacity-100 transition-opacity"
       >
         <GripVertical className="size-4" />
       </button>
