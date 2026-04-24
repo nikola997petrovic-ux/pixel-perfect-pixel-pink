@@ -23,6 +23,20 @@ function AreasPage() {
   const { data: tasks = [] } = useAllTasks();
   const { data: streaks = [] } = useStreaks();
   const del = useDeleteArea();
+  const reorder = useReorderAreas();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const ids = areas.map((a) => a.id);
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = ids.indexOf(active.id as string);
+    const newIdx = ids.indexOf(over.id as string);
+    if (oldIdx < 0 || newIdx < 0) return;
+    reorder.mutate(arrayMove(ids, oldIdx, newIdx));
+  };
 
   const stats = (id: string) => {
     const ts = tasks.filter((t) => t.area_id === id);
