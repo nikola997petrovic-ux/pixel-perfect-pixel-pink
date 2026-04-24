@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAreas, useAllTasks, useStreaks, useDeleteArea } from "@/lib/api";
+import { useAreas, useAllTasks, useStreaks, useDeleteArea, useReorderAreas } from "@/lib/api";
 import { AreaQuickTaskForm } from "@/components/AreaQuickTaskForm";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
 import { EditAreaDialog } from "@/components/EditAreaDialog";
-import { Trash2 } from "lucide-react";
+import { Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import type { Area } from "@/lib/types";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/_app/areas")({
   component: AreasPage,
