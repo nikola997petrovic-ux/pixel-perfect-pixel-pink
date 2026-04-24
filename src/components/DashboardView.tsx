@@ -253,44 +253,12 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
     opacity: isDragging ? 0.85 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="relative group/card">
-      <Link
-        to="/areas/$areaId"
-        params={{ areaId: area.id }}
-        className="bg-paper-light border border-ruling p-6 flex flex-col gap-7 relative hover:border-ink/40 transition-colors group block"
-      >
-        <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: area.color }} />
-        <div className="flex justify-between items-start gap-3">
-          <div className="flex flex-col gap-2 min-w-0">
-            <span
-              className="text-[10px] font-medium tracking-widest uppercase truncate"
-              style={{ color: area.color }}
-            >
-              {area.emoji} {area.name}
-            </span>
-            <h4 className="text-xl font-serif text-ink truncate">
-              {area.description || "Untitled chapter"}
-            </h4>
-          </div>
-          {streak && streak.current_streak > 0 ? (
-            <div className="flex flex-col items-end gap-1 shrink-0 mr-8">
-              <span className="text-xs text-ink-muted">Streak</span>
-              <span className="text-sm tabular-nums text-ink">{String(streak.current_streak).padStart(2, "0")} ✦</span>
-            </div>
-          ) : (
-            <span className="text-xs text-ink-muted shrink-0 mr-8">—</span>
-          )}
-        </div>
-        <div className="flex flex-col gap-2 mt-auto">
-          <div className="flex justify-between text-xs text-ink-muted tabular-nums">
-            <span>{pct}% capacity</span>
-            <span>{done} / {total} entries</span>
-          </div>
-          <div className="w-full h-[2px] bg-ruling relative overflow-hidden">
-            <div className="absolute top-0 left-0 h-full transition-all" style={{ width: `${pct}%`, backgroundColor: area.color }} />
-          </div>
-        </div>
-      </Link>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative group/card bg-paper-light border border-ruling p-6 flex flex-col gap-7 hover:border-ink/40 transition-colors"
+    >
+      <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: area.color }} />
       <button
         type="button"
         {...attributes}
@@ -303,6 +271,45 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
         <GripVertical className="size-4 shrink-0" />
         <span className="text-[10px] uppercase tracking-widest md:hidden">Move</span>
       </button>
+      <div className="flex justify-between items-start gap-3 pr-16">
+        <div className="flex flex-col gap-2 min-w-0">
+          <span
+            className="text-[10px] font-medium tracking-widest uppercase truncate"
+            style={{ color: area.color }}
+          >
+            {area.emoji} {area.name}
+          </span>
+          <h4 className="text-xl font-serif text-ink truncate">
+            {area.description || "Untitled chapter"}
+          </h4>
+        </div>
+        {streak && streak.current_streak > 0 ? (
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className="text-xs text-ink-muted">Streak</span>
+            <span className="text-sm tabular-nums text-ink">{String(streak.current_streak).padStart(2, "0")} ✦</span>
+          </div>
+        ) : (
+          <span className="text-xs text-ink-muted shrink-0">—</span>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 mt-auto">
+        <div className="flex justify-between text-xs text-ink-muted tabular-nums">
+          <span>{pct}% capacity</span>
+          <span>{done} / {total} entries</span>
+        </div>
+        <div className="w-full h-[2px] bg-ruling relative overflow-hidden">
+          <div className="absolute top-0 left-0 h-full transition-all" style={{ width: `${pct}%`, backgroundColor: area.color }} />
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <Link
+          to="/areas/$areaId"
+          params={{ areaId: area.id }}
+          className="text-[10px] uppercase tracking-widest text-ink-muted hover:text-ink"
+        >
+          Open
+        </Link>
+      </div>
     </div>
   );
 }
