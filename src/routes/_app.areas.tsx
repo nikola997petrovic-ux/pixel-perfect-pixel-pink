@@ -108,19 +108,24 @@ function SortableAreaCard({
     <div ref={setNodeRef} style={style} className="bg-paper-light border border-ruling p-6 relative flex flex-col gap-5">
       <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: area.color }} />
       <div className="flex justify-between items-start gap-3">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder"
-          className="-ml-2 p-1.5 text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing touch-none shrink-0"
-        >
-          <GripVertical className="size-4" />
-        </button>
-        <Link to="/areas/$areaId" params={{ areaId: area.id }} className="flex-1 min-w-0">
-          <span className="text-[10px] tracking-widest uppercase" style={{ color: area.color }}>{area.emoji} {area.name}</span>
-          <h4 className="font-serif text-xl mt-1 truncate">{area.description || "Untitled chapter"}</h4>
-        </Link>
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+            onClick={(e) => e.preventDefault()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="-ml-1 mt-0.5 flex items-center gap-1.5 px-2.5 py-2 bg-paper border border-ruling text-ink cursor-grab active:cursor-grabbing touch-none shrink-0 md:px-2 md:py-1.5 md:text-ink-muted"
+          >
+            <GripVertical className="size-4 shrink-0" />
+            <span className="text-[10px] uppercase tracking-widest md:hidden">Move</span>
+          </button>
+          <Link to="/areas/$areaId" params={{ areaId: area.id }} className="flex-1 min-w-0">
+            <span className="text-[10px] tracking-widest uppercase" style={{ color: area.color }}>{area.emoji} {area.name}</span>
+            <h4 className="font-serif text-xl mt-1 truncate">{area.description || "Untitled chapter"}</h4>
+          </Link>
+        </div>
         <div className="flex items-center gap-1.5">
           <EditAreaDialog area={area} trigger={<Button variant="outline" size="sm" className="border-ruling text-ink hover:bg-paper">Edit</Button>} />
           <AlertDialog>

@@ -298,9 +298,10 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
         aria-label="Drag to reorder"
         onClick={(e) => e.preventDefault()}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute top-1.5 right-1.5 z-20 p-2 bg-paper border border-ruling text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing touch-none md:bg-transparent md:border-transparent md:opacity-0 md:group-hover/card:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-2 bg-paper border border-ruling text-ink cursor-grab active:cursor-grabbing touch-none shadow-sm md:px-2 md:py-2 md:bg-transparent md:border-transparent md:text-ink-muted md:shadow-none md:opacity-0 md:group-hover/card:opacity-100 transition-opacity"
       >
-        <GripVertical className="size-4" />
+        <GripVertical className="size-4 shrink-0" />
+        <span className="text-[10px] uppercase tracking-widest md:hidden">Move</span>
       </button>
     </div>
   );
