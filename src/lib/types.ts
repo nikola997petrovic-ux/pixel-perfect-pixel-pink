@@ -6,6 +6,7 @@ export type Area = {
   emoji: string;
   color: string;
   description: string | null;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };

@@ -1,14 +1,17 @@
 import { format, isToday, isPast, isThisWeek, isTomorrow, parseISO, addDays } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
-import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask } from "@/lib/api";
+import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
 import type { Area, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
-import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export function DashboardView() {
   const { data: areas = [], isLoading: la } = useAreas();
@@ -120,9 +123,11 @@ export function DashboardView() {
             <NewAreaDialog />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {areas.map((a) => <DomainCard key={a.id} area={a} stats={byArea.get(a.id)} streak={streakByArea.get(a.id)} />)}
-          </div>
+          <SortableDomainGrid
+            areas={areas}
+            byArea={byArea}
+            streakByArea={streakByArea}
+          />
         )}
       </section>
 
@@ -200,48 +205,102 @@ export function DashboardView() {
   );
 }
 
+function SortableDomainGrid({
+  areas,
+  byArea,
+  streakByArea,
+}: {
+  areas: Area[];
+  byArea: Map<string, { total: number; done: number }>;
+  streakByArea: Map<string, Streak>;
+}) {
+  const reorder = useReorderAreas();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const ids = areas.map((a) => a.id);
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = ids.indexOf(active.id as string);
+    const newIdx = ids.indexOf(over.id as string);
+    if (oldIdx < 0 || newIdx < 0) return;
+    reorder.mutate(arrayMove(ids, oldIdx, newIdx));
+  };
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ids} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {areas.map((a) => (
+            <DomainCard key={a.id} area={a} stats={byArea.get(a.id)} streak={streakByArea.get(a.id)} />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
 function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: number; done: number }; streak?: Streak }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: area.id });
   const total = stats?.total ?? 0;
   const done = stats?.done ?? 0;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
   return (
-    <Link
-      to="/areas/$areaId"
-      params={{ areaId: area.id }}
-      className="bg-paper-light border border-ruling p-6 flex flex-col gap-7 relative hover:border-ink/40 transition-colors group"
-    >
-      <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: area.color }} />
-      <div className="flex justify-between items-start gap-3">
-        <div className="flex flex-col gap-2 min-w-0">
-          <span
-            className="text-[10px] font-medium tracking-widest uppercase truncate"
-            style={{ color: area.color }}
-          >
-            {area.emoji} {area.name}
-          </span>
-          <h4 className="text-xl font-serif text-ink truncate">
-            {area.description || "Untitled chapter"}
-          </h4>
-        </div>
-        {streak && streak.current_streak > 0 ? (
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className="text-xs text-ink-muted">Streak</span>
-            <span className="text-sm tabular-nums text-ink">{String(streak.current_streak).padStart(2, "0")} ✦</span>
+    <div ref={setNodeRef} style={style} className="relative group/card">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="absolute top-2 right-2 z-10 p-1.5 text-ink-muted hover:text-ink cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-100 transition-opacity touch-none"
+      >
+        <GripVertical className="size-4" />
+      </button>
+      <Link
+        to="/areas/$areaId"
+        params={{ areaId: area.id }}
+        className="bg-paper-light border border-ruling p-6 flex flex-col gap-7 relative hover:border-ink/40 transition-colors group"
+      >
+        <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: area.color }} />
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex flex-col gap-2 min-w-0">
+            <span
+              className="text-[10px] font-medium tracking-widest uppercase truncate"
+              style={{ color: area.color }}
+            >
+              {area.emoji} {area.name}
+            </span>
+            <h4 className="text-xl font-serif text-ink truncate">
+              {area.description || "Untitled chapter"}
+            </h4>
           </div>
-        ) : (
-          <span className="text-xs text-ink-muted shrink-0">—</span>
-        )}
-      </div>
-      <div className="flex flex-col gap-2 mt-auto">
-        <div className="flex justify-between text-xs text-ink-muted tabular-nums">
-          <span>{pct}% capacity</span>
-          <span>{done} / {total} entries</span>
+          {streak && streak.current_streak > 0 ? (
+            <div className="flex flex-col items-end gap-1 shrink-0 mr-6">
+              <span className="text-xs text-ink-muted">Streak</span>
+              <span className="text-sm tabular-nums text-ink">{String(streak.current_streak).padStart(2, "0")} ✦</span>
+            </div>
+          ) : (
+            <span className="text-xs text-ink-muted shrink-0 mr-6">—</span>
+          )}
         </div>
-        <div className="w-full h-[2px] bg-ruling relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full transition-all" style={{ width: `${pct}%`, backgroundColor: area.color }} />
+        <div className="flex flex-col gap-2 mt-auto">
+          <div className="flex justify-between text-xs text-ink-muted tabular-nums">
+            <span>{pct}% capacity</span>
+            <span>{done} / {total} entries</span>
+          </div>
+          <div className="w-full h-[2px] bg-ruling relative overflow-hidden">
+            <div className="absolute top-0 left-0 h-full transition-all" style={{ width: `${pct}%`, backgroundColor: area.color }} />
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 
