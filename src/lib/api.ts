@@ -9,7 +9,11 @@ export function useAreas() {
   return useQuery({
     queryKey: qk.areas,
     queryFn: async () => {
-      const { data, error } = await supabase.from("areas").select("*").order("updated_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("areas")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Area[];
     },
@@ -94,6 +98,40 @@ export function useUpdateArea() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.areas }),
     onError: (e: any) => toast.error(e.message),
+  });
+}
+
+export function useReorderAreas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      // Update each area's sort_order based on its index
+      await Promise.all(
+        orderedIds.map((id, idx) =>
+          supabase.from("areas").update({ sort_order: idx + 1 }).eq("id", id),
+        ),
+      );
+    },
+    onMutate: async (orderedIds) => {
+      await qc.cancelQueries({ queryKey: qk.areas });
+      const prev = qc.getQueryData<Area[]>(qk.areas);
+      if (prev) {
+        const map = new Map(prev.map((a) => [a.id, a]));
+        const next = orderedIds
+          .map((id, idx) => {
+            const a = map.get(id);
+            return a ? { ...a, sort_order: idx + 1 } : null;
+          })
+          .filter(Boolean) as Area[];
+        qc.setQueryData<Area[]>(qk.areas, next);
+      }
+      return { prev };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.areas, ctx.prev);
+      toast.error(e.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.areas }),
   });
 }
 
