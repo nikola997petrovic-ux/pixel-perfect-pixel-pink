@@ -54,6 +54,17 @@ export function useGoals(areaId: string | undefined) {
   });
 }
 
+export function useAllGoals() {
+  return useQuery({
+    queryKey: ["goals", "all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("goals").select("*").order("created_at");
+      if (error) throw error;
+      return (data ?? []) as Goal[];
+    },
+  });
+}
+
 export function useTasksForArea(areaId: string | undefined) {
   return useQuery({
     queryKey: areaId ? qk.tasks(areaId) : ["tasks", "none"],

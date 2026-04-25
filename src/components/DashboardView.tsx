@@ -1,9 +1,9 @@
 import { format, isToday, isPast, isThisWeek, isTomorrow, addDays } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
-import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
+import { useAreas, useAllTasks, useAllGoals, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
 import { isTaskScheduledToday, isTaskScheduledOn, getDaysFromNotes, setDaysInNotes, getDisplayNotes, formatDaysLabel } from "@/lib/recurrence";
-import type { Area, Task, Streak } from "@/lib/types";
+import type { Area, Goal, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,6 +26,7 @@ function parseDate(s: string): Date {
 export function DashboardView() {
   const { data: areas = [] } = useAreas();
   const { data: tasks = [], isLoading: lt } = useAllTasks();
+  const { data: goals = [] } = useAllGoals();
   const { data: streaks = [] } = useStreaks();
 
   const today = format(new Date(), "EEEE, MMMM d");
@@ -37,6 +38,16 @@ export function DashboardView() {
     for (const s of streaks) m.set(s.area_id, s);
     return m;
   }, [streaks]);
+
+  const goalsByArea = useMemo(() => {
+    const m = new Map<string, Goal[]>();
+    for (const g of goals) {
+      const list = m.get(g.area_id) ?? [];
+      list.push(g);
+      m.set(g.area_id, list);
+    }
+    return m;
+  }, [goals]);
 
   const overdue = tasks.filter((t) => !t.completed && t.due_date && isPast(parseDate(t.due_date)) && !isToday(parseDate(t.due_date)));
   const dueTodayDated = tasks.filter((t) => !t.completed && t.due_date && isToday(parseDate(t.due_date)));
@@ -177,6 +188,40 @@ export function DashboardView() {
           <TaskList tasks={overdue} areas={areas} overdue />
         </section>
       )}
+
+      {/* Goals by domain */}
+      {goals.length > 0 && (
+        <section className="flex flex-col gap-6 max-w-[900px]">
+          <header className="border-b border-ruling pb-3 flex items-baseline justify-between">
+            <h3 className="text-xl font-serif">Goals</h3>
+            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">
+              {goals.filter((g) => g.status === "active").length} active
+            </span>
+          </header>
+          <div className="flex flex-col gap-6">
+            {areas.map((area) => {
+              const areaGoals = goalsByArea.get(area.id) ?? [];
+              if (areaGoals.length === 0) return null;
+              const active = areaGoals.filter((g) => g.status === "active");
+              const completed = areaGoals.filter((g) => g.status === "completed");
+              return (
+                <div key={area.id} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: area.color }}>
+                      {area.emoji} {area.name}
+                    </span>
+                    <div className="flex-1 h-px bg-ruling" />
+                  </div>
+                  <div className="flex flex-col">
+                    {active.map((g) => <GoalRow key={g.id} goal={g} />)}
+                    {completed.map((g) => <GoalRow key={g.id} goal={g} />)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -293,6 +338,32 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
         >
           Open
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function GoalRow({ goal }: { goal: Goal }) {
+  const isCompleted = goal.status === "completed";
+  const isPaused = goal.status === "paused";
+  return (
+    <div className="flex items-baseline gap-3 py-2.5 border-b border-ruling border-dashed last:border-0">
+      <span
+        className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
+          isCompleted ? "bg-ink-muted" : isPaused ? "bg-ruling" : "bg-ink"
+        }`}
+      />
+      <span className={`text-sm flex-1 min-w-0 ${isCompleted ? "line-through text-ink-muted" : isPaused ? "text-ink-muted" : "text-ink"}`}>
+        {goal.title}
+      </span>
+      <div className="flex items-center gap-2 shrink-0">
+        {goal.target_date && (
+          <span className="text-xs text-ink-muted tabular-nums">
+            {format(new Date(goal.target_date.replace(/-/g, "/")), "MMM d")}
+          </span>
+        )}
+        {isPaused && <span className="text-[10px] uppercase tracking-widest text-ink-muted">Paused</span>}
+        {isCompleted && <span className="text-[10px] uppercase tracking-widest text-ink-muted">Done</span>}
       </div>
     </div>
   );

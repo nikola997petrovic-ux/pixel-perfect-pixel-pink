@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { useAreas, useAllTasks, useStreaks, useDeleteArea, useReorderAreas } from "@/lib/api";
+import { useAreas, useAllTasks, useAllGoals, useStreaks, useDeleteArea, useReorderAreas } from "@/lib/api";
 import { AreaQuickTaskForm } from "@/components/AreaQuickTaskForm";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
 import { EditAreaDialog } from "@/components/EditAreaDialog";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import type { Area } from "@/lib/types";
+import type { Area, Goal } from "@/lib/types";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -27,6 +27,7 @@ function AreasLayout() {
 function AreasPage() {
   const { data: areas = [], isLoading } = useAreas();
   const { data: tasks = [] } = useAllTasks();
+  const { data: goals = [] } = useAllGoals();
   const { data: streaks = [] } = useStreaks();
   const del = useDeleteArea();
   const reorder = useReorderAreas();
@@ -51,6 +52,7 @@ function AreasPage() {
     return { total: ts.length, done, pct: ts.length === 0 ? 0 : Math.round((done / ts.length) * 100) };
   };
   const streakOf = (id: string) => streaks.find((s) => s.area_id === id);
+  const goalsFor = (id: string) => goals.filter((g) => g.area_id === id);
 
   return (
     <div className="py-10 md:py-12 px-6 md:px-16 lg:px-24 flex flex-col gap-10 max-w-[1200px]">
@@ -82,6 +84,7 @@ function AreasPage() {
                   area={a}
                   stats={stats(a.id)}
                   streak={streakOf(a.id)}
+                  goals={goalsFor(a.id)}
                   onDelete={() => del.mutate(a.id)}
                 />
               ))}
@@ -97,11 +100,13 @@ function SortableAreaCard({
   area,
   stats,
   streak,
+  goals,
   onDelete,
 }: {
   area: Area;
   stats: { total: number; done: number; pct: number };
   streak: { current_streak: number } | undefined;
+  goals: Goal[];
   onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: area.id });
@@ -158,6 +163,29 @@ function SortableAreaCard({
       <div className="w-full h-[2px] bg-ruling overflow-hidden">
         <div className="h-full" style={{ width: `${stats.pct}%`, backgroundColor: area.color }} />
       </div>
+      {goals.length > 0 && (
+        <div className="flex flex-col gap-1 pt-1 border-t border-ruling/60 border-dashed">
+          <p className="text-[10px] uppercase tracking-widest text-ink-muted mb-1">Goals</p>
+          {goals.map((g) => (
+            <div key={g.id} className="flex items-baseline gap-2 py-1">
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${
+                  g.status === "completed" ? "bg-ink-muted" : g.status === "paused" ? "bg-ruling" : "bg-ink"
+                }`}
+              />
+              <span className={`text-sm flex-1 min-w-0 truncate ${g.status !== "active" ? "text-ink-muted" : "text-ink"} ${g.status === "completed" ? "line-through" : ""}`}>
+                {g.title}
+              </span>
+              {g.target_date && (
+                <span className="text-xs text-ink-muted tabular-nums shrink-0">
+                  {new Date(g.target_date.replace(/-/g, "/")).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              )}
+              {g.status === "paused" && <span className="text-[10px] uppercase tracking-widest text-ink-muted shrink-0">Paused</span>}
+            </div>
+          ))}
+        </div>
+      )}
       <AreaQuickTaskForm areaId={area.id} accent={area.color} />
     </div>
   );
