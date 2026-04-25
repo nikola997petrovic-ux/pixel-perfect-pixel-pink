@@ -1,6 +1,6 @@
 import { useState, useRef, type FormEvent } from "react";
 import { isPast, isToday, format } from "date-fns";
-import { Plus, Trash2, Repeat } from "lucide-react";
+import { Plus, Trash2, Repeat } from "lucide-react"; // Repeat used in recurrence form
 import { toast } from "sonner";
 import { useCreateTask, useTasksForArea, useToggleTask, useDeleteTask } from "@/lib/api";
 import { getDaysFromNotes, setDaysInNotes, formatDaysLabel } from "@/lib/recurrence";
@@ -83,31 +83,32 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
             const recurLabel = t.recurrence === "daily"
               ? (days?.length ? formatDaysLabel(days) : "Daily")
               : null;
+            const dateLabel = due
+              ? (isToday(due) ? "Today" : format(due, "MMM d"))
+              : null;
+            const meta = recurLabel ?? dateLabel;
             return (
-              <li key={t.id} className="group flex items-center gap-3 py-1.5">
+              <li key={t.id} className="group flex items-center gap-2 py-1.5">
                 <Checkbox
                   checked={t.completed}
                   onCheckedChange={(c) =>
                     toggleTask.mutate({ id: t.id, area_id: t.area_id, completed: !!c })
                   }
-                  className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
+                  className="size-4 shrink-0 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
                   style={{ accentColor: accent }}
                 />
-                <span className={`text-sm flex-1 truncate ${t.completed ? "line-through text-ink-muted" : "text-ink"}`}>
+                <span className={`text-sm flex-1 min-w-0 truncate ${t.completed ? "line-through text-ink-muted" : "text-ink"}`}>
                   {t.title}
-                  {recurLabel && (
-                    <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" aria-label={recurLabel} />
-                  )}
                 </span>
-                {due && (
-                  <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
-                    {isToday(due) ? "Today" : format(due, "MMM d")}
+                {meta && (
+                  <span className={`text-xs shrink-0 tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
+                    {meta}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => deleteTask.mutate({ id: t.id, area_id: t.area_id })}
-                  className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 text-ink-muted hover:text-overdue transition-opacity"
+                  className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 text-ink-muted hover:text-overdue transition-opacity shrink-0"
                   aria-label="Delete task"
                 >
                   <Trash2 className="size-3.5" />
