@@ -308,11 +308,11 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
       <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
         {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : "—"}
       </span>
-      <div className="flex items-center gap-1">
-        <button onClick={startEdit} className="p-1 text-ink-muted hover:text-ink rounded" aria-label="Edit task">
+      <div className="flex items-center gap-1 shrink-0">
+        <button onClick={startEdit} className="p-1.5 text-ink-muted hover:text-ink hover:bg-paper-light rounded" aria-label="Edit task">
           <Pencil className="size-3.5" />
         </button>
-        <button onClick={() => del.mutate({ id: task.id, area_id: task.area_id })} className="p-1 text-ink-muted hover:text-overdue rounded" aria-label="Delete task">
+        <button onClick={() => del.mutate({ id: task.id, area_id: task.area_id })} className="p-1.5 text-ink-muted hover:text-overdue hover:bg-paper-light rounded" aria-label="Delete task">
           <Trash2 className="size-3.5" />
         </button>
       </div>
