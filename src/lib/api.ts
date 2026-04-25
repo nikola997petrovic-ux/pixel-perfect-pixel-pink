@@ -69,7 +69,7 @@ export function useTasksForArea(areaId: string | undefined) {
   return useQuery({
     queryKey: areaId ? qk.tasks(areaId) : ["tasks", "none"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("*").eq("area_id", areaId!);
+      const { data, error } = await supabase.from("tasks").select("*").eq("area_id", areaId!).order("created_at", { ascending: true });
       if (error) throw error;
       return applyRecurrenceMany((data ?? []) as Task[]);
     },
@@ -173,11 +173,13 @@ export function useCreateGoal() {
     },
     onSuccess: (g) => {
       qc.invalidateQueries({ queryKey: qk.goals(g.area_id) });
+      qc.invalidateQueries({ queryKey: ["goals", "all"] });
       toast.success("Goal added");
     },
     onError: (e: any) => toast.error(e.message),
   });
 }
+
 export function useUpdateGoal() {
   const qc = useQueryClient();
   return useMutation({
@@ -186,7 +188,10 @@ export function useUpdateGoal() {
       if (error) throw error;
       return area_id;
     },
-    onSuccess: (areaId) => qc.invalidateQueries({ queryKey: qk.goals(areaId) }),
+    onSuccess: (areaId) => {
+      qc.invalidateQueries({ queryKey: qk.goals(areaId) });
+      qc.invalidateQueries({ queryKey: ["goals", "all"] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 }
@@ -200,6 +205,7 @@ export function useDeleteGoal() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: qk.goals(vars.area_id) });
+      qc.invalidateQueries({ queryKey: ["goals", "all"] });
       qc.invalidateQueries({ queryKey: qk.tasks(vars.area_id) });
       qc.invalidateQueries({ queryKey: qk.allTasks });
     },
@@ -298,10 +304,25 @@ export function useUpdateTask() {
       if (error) throw error;
       return area_id;
     },
-    onSuccess: (areaId) => {
-      qc.invalidateQueries({ queryKey: qk.tasks(areaId) });
+    onMutate: async ({ id, area_id, ...patch }) => {
+      await qc.cancelQueries({ queryKey: qk.allTasks });
+      await qc.cancelQueries({ queryKey: qk.tasks(area_id) });
+      const prevAll = qc.getQueryData<Task[]>(qk.allTasks);
+      const prevArea = qc.getQueryData<Task[]>(qk.tasks(area_id));
+      // Update the task in-place — preserves array position
+      const apply = (t: Task): Task => t.id !== id ? t : { ...t, ...patch };
+      qc.setQueryData<Task[]>(qk.allTasks, (old) => old?.map(apply));
+      qc.setQueryData<Task[]>(qk.tasks(area_id), (old) => old?.map(apply));
+      return { prevAll, prevArea, area_id };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prevAll) qc.setQueryData(qk.allTasks, ctx.prevAll);
+      if (ctx?.prevArea && ctx.area_id) qc.setQueryData(qk.tasks(ctx.area_id), ctx.prevArea);
+      toast.error(e.message);
+    },
+    onSettled: (_d, _e, vars) => {
+      qc.invalidateQueries({ queryKey: qk.tasks(vars.area_id) });
       qc.invalidateQueries({ queryKey: qk.allTasks });
     },
-    onError: (e: any) => toast.error(e.message),
   });
 }
