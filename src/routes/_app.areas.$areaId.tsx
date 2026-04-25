@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
-import { format, parseISO, isPast, isToday } from "date-fns";
-import { ChevronLeft, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { format, isPast, isToday } from "date-fns";
+import { ChevronLeft, Plus, Trash2, Pencil, Check, X, Repeat } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import {
   useCreateGoal, useDeleteGoal, useCreateTask, useToggleTask, useDeleteTask, useUpdateTask,
 } from "@/lib/api";
 import type { Goal, Task } from "@/lib/types";
+import { formatWeeklyLabel } from "@/lib/recurrence";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { EditAreaDialog } from "@/components/EditAreaDialog";
+
+function parseDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+const WEEK_DAYS = [
+  { label: "M", dow: 1 }, { label: "T", dow: 2 }, { label: "W", dow: 3 },
+  { label: "T", dow: 4 }, { label: "F", dow: 5 }, { label: "S", dow: 6 }, { label: "S", dow: 0 },
+] as const;
 
 export const Route = createFileRoute("/_app/areas/$areaId")({
   loader: async ({ params }) => {
@@ -115,7 +126,7 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
           {goal.description && <p className="text-sm text-ink-muted mt-1">{goal.description}</p>}
           {goal.target_date && (
             <p className="text-xs text-ink-muted mt-2 uppercase tracking-widest">
-              Target · {format(parseISO(goal.target_date), "MMM d, yyyy")}
+              Target · {format(parseDate(goal.target_date), "MMM d, yyyy")}
             </p>
           )}
         </div>
@@ -165,7 +176,7 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
   const [title, setTitle] = useState(task.title);
   const [due, setDue] = useState(task.due_date ?? "");
 
-  const dueDate = task.due_date ? parseISO(task.due_date) : null;
+  const dueDate = task.due_date ? parseDate(task.due_date) : null;
   const overdue = dueDate && !task.completed && isPast(dueDate) && !isToday(dueDate);
 
   const startEdit = () => { setTitle(task.title); setDue(task.due_date ?? ""); setEditing(true); };
@@ -215,7 +226,12 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
         className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
         style={{ accentColor: accent }}
       />
-      <span className={`text-sm flex-1 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>{task.title}</span>
+      <span className={`text-sm flex-1 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>
+        {task.title}
+        {task.recurrence && (
+          <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" aria-label={task.recurrence === "daily" ? "Daily" : formatWeeklyLabel(task.recurrence)} />
+        )}
+      </span>
       <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
         {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : "—"}
       </span>
@@ -234,24 +250,84 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
 function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: string | null; areaId: string; placeholder?: string }) {
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
+  const [recurMode, setRecurMode] = useState<"none" | "daily" | "weekly">("none");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const create = useCreateTask();
+
+  const cycleRecur = () => {
+    setRecurMode((m) => {
+      if (m === "none") return "daily";
+      if (m === "daily") return "weekly";
+      setSelectedDays([]);
+      return "none";
+    });
+  };
+
+  const toggleDay = (d: number) =>
+    setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+
+  const getRecurrence = (): string | null => {
+    if (recurMode === "daily") return "daily";
+    if (recurMode === "weekly" && selectedDays.length > 0)
+      return `weekly:${[...selectedDays].sort().join(",")}`;
+    return null;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = title.trim();
     if (!t) return;
     if (t.length > 200) { toast.error("Title too long"); return; }
-    await create.mutateAsync({ goal_id: goalId, area_id: areaId, title: t, due_date: due || null });
-    setTitle(""); setDue("");
+    await create.mutateAsync({ goal_id: goalId, area_id: areaId, title: t, due_date: due || null, recurrence: getRecurrence() });
+    setTitle(""); setDue(""); setRecurMode("none"); setSelectedDays([]);
     inputRef.current?.focus();
   };
+
   return (
-    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-ruling/60 border-dashed">
-      <Input ref={inputRef} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={placeholder} maxLength={200} className="bg-paper border-ruling flex-1" />
-      <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
-      <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper">
-        <Plus className="size-3.5 mr-1" /> Add task
-      </Button>
+    <form onSubmit={submit} className="flex flex-col gap-1.5 pt-2 border-t border-ruling/60 border-dashed">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input ref={inputRef} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={placeholder} maxLength={200} className="bg-paper border-ruling flex-1" />
+        <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
+        <button
+          type="button"
+          onClick={cycleRecur}
+          aria-pressed={recurMode !== "none"}
+          title={recurMode === "none" ? "No recurrence" : recurMode === "daily" ? "Daily" : "Specific days"}
+          className={`p-2 border rounded transition-colors ${recurMode !== "none" ? "border-ink bg-paper-light text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
+        >
+          <Repeat className="size-3.5" />
+        </button>
+        <Button type="submit" variant="outline" className="border-ruling text-ink hover:bg-paper" disabled={create.isPending}>
+          <Plus className="size-3.5 mr-1" /> Add task
+        </Button>
+      </div>
+      {recurMode === "weekly" && (
+        <div className="flex items-center gap-1.5 pl-0.5">
+          <span className="text-[10px] uppercase tracking-widest text-ink-muted">Days</span>
+          {WEEK_DAYS.map(({ label, dow }) => (
+            <button
+              type="button"
+              key={dow}
+              onClick={() => toggleDay(dow)}
+              className={`w-6 h-6 text-[10px] font-medium border transition-colors ${
+                selectedDays.includes(dow) ? "border-ink text-ink bg-paper-light" : "border-ruling text-ink-muted hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {recurMode !== "none" && (
+        <p className="text-[10px] text-ink-muted pl-0.5">
+          {recurMode === "daily"
+            ? "Repeats every day"
+            : selectedDays.length === 0
+              ? "Select days below"
+              : `Repeats every ${selectedDays.map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]).join(", ")}`}
+        </p>
+      )}
     </form>
   );
 }
