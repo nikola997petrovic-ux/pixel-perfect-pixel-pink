@@ -24,23 +24,13 @@ function parseDate(s: string): Date {
 }
 
 export function DashboardView() {
-  const { data: areas = [], isLoading: la } = useAreas();
+  const { data: areas = [] } = useAreas();
   const { data: tasks = [], isLoading: lt } = useAllTasks();
   const { data: streaks = [] } = useStreaks();
 
   const today = format(new Date(), "EEEE, MMMM d");
   const tomorrowDateObj = addDays(new Date(), 1);
   const tomorrowKey = format(tomorrowDateObj, "yyyy-MM-dd");
-
-  const byArea = useMemo(() => {
-    const map = new Map<string, { total: number; done: number }>();
-    for (const a of areas) map.set(a.id, { total: 0, done: 0 });
-    for (const t of tasks) {
-      const m = map.get(t.area_id);
-      if (m) { m.total += 1; if (t.completed) m.done += 1; }
-    }
-    return map;
-  }, [areas, tasks]);
 
   const streakByArea = useMemo(() => {
     const m = new Map<string, Streak>();
@@ -49,8 +39,11 @@ export function DashboardView() {
   }, [streaks]);
 
   const overdue = tasks.filter((t) => !t.completed && t.due_date && isPast(parseDate(t.due_date)) && !isToday(parseDate(t.due_date)));
+  const dueToday = tasks
+    .filter((t) => !t.completed && t.due_date && isToday(parseDate(t.due_date)))
+    .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
   const dueThisWeek = tasks
-    .filter((t) => !t.completed && t.due_date && (isToday(parseDate(t.due_date)) || (isThisWeek(parseDate(t.due_date), { weekStartsOn: 1 }) && !isPast(parseDate(t.due_date)))))
+    .filter((t) => !t.completed && t.due_date && isThisWeek(parseDate(t.due_date), { weekStartsOn: 1 }) && !isPast(parseDate(t.due_date)) && !isToday(parseDate(t.due_date)))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
   const dailies = tasks.filter((t) => isTaskScheduledToday(t));
   // Tomorrow: tasks dated for tomorrow + all tasks recurring tomorrow
@@ -64,15 +57,16 @@ export function DashboardView() {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.completed).length;
 
-  type TabKey = "week" | "tomorrow" | "daily" | "unscheduled";
+  type TabKey = "today" | "tomorrow" | "daily" | "week" | "unscheduled";
   const tabDefs: { key: TabKey; label: string; count: number; visible: boolean }[] = [
-    { key: "week", label: "This Week", count: dueThisWeek.length, visible: true },
+    { key: "today", label: "Today", count: dueToday.length, visible: true },
     { key: "tomorrow", label: "Tomorrow", count: tomorrow.length, visible: true },
     { key: "daily", label: "Daily Rituals", count: dailies.length, visible: dailies.length > 0 },
+    { key: "week", label: "This Week", count: dueThisWeek.length, visible: true },
     { key: "unscheduled", label: "Unscheduled", count: unscheduled.length, visible: unscheduled.length > 0 },
   ];
   const visibleTabs = tabDefs.filter((t) => t.visible);
-  const [activeTab, setActiveTab] = useState<TabKey>("week");
+  const [activeTab, setActiveTab] = useState<TabKey>("today");
 
   const EXCELLENCE_QUOTES = [
     "We are what we repeatedly do. Excellence, then, is not an act, but a habit. — Aristotle",
@@ -131,13 +125,13 @@ export function DashboardView() {
             ))}
           </TabsList>
 
-          <TabsContent value="week" className="mt-4">
+          <TabsContent value="today" className="mt-4">
             {lt ? (
               <p className="text-sm text-ink-muted">…</p>
-            ) : dueThisWeek.length === 0 ? (
-              <p className="text-sm text-ink-muted py-4">Nothing due this week. A clear horizon.</p>
+            ) : dueToday.length === 0 ? (
+              <p className="text-sm text-ink-muted py-4">Nothing due today. A clear horizon.</p>
             ) : (
-              <TaskList tasks={dueThisWeek} areas={areas} />
+              <TaskList tasks={dueToday} areas={areas} />
             )}
           </TabsContent>
 
@@ -163,6 +157,14 @@ export function DashboardView() {
             </TabsContent>
           )}
 
+          <TabsContent value="week" className="mt-4">
+            {dueThisWeek.length === 0 ? (
+              <p className="text-sm text-ink-muted py-4">Nothing else due this week.</p>
+            ) : (
+              <TaskList tasks={dueThisWeek} areas={areas} />
+            )}
+          </TabsContent>
+
           {unscheduled.length > 0 && (
             <TabsContent value="unscheduled" className="mt-4">
               <p className="text-xs text-ink-muted mb-2">Tasks without a date. Click a title to set one.</p>
@@ -182,38 +184,6 @@ export function DashboardView() {
           <TaskList tasks={overdue} areas={areas} overdue />
         </section>
       )}
-
-      {/* Domains */}
-      <section className="flex flex-col gap-6">
-        <header className="flex items-baseline justify-between border-b border-ruling pb-3">
-          <h3 className="text-xl font-serif">Active Domains</h3>
-          <NewAreaDialog
-            trigger={
-              <button className="text-xs text-ink-muted hover:text-ink uppercase tracking-widest flex items-center gap-1.5">
-                <Plus className="size-3" /> Add
-              </button>
-            }
-          />
-        </header>
-
-        {la ? (
-          <p className="text-sm text-ink-muted">Opening the ledger…</p>
-        ) : areas.length === 0 ? (
-          <div className="border border-dashed border-ruling p-10 text-center">
-            <p className="font-serif text-lg mb-2">No domains yet</p>
-            <p className="text-sm text-ink-muted mb-5 max-w-md mx-auto">
-              Domains are the broad areas of life you want to grow — Craft, Vitality, Intellect, or whatever names yours.
-            </p>
-            <NewAreaDialog />
-          </div>
-        ) : (
-          <SortableDomainGrid
-            areas={areas}
-            byArea={byArea}
-            streakByArea={streakByArea}
-          />
-        )}
-      </section>
     </div>
   );
 }
