@@ -46,7 +46,7 @@ export function useGoals(areaId: string | undefined) {
   return useQuery({
     queryKey: areaId ? qk.goals(areaId) : ["goals", "none"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("goals").select("*").eq("area_id", areaId!).order("created_at");
+      const { data, error } = await supabase.from("goals").select("*").eq("area_id", areaId!).order("target_date", { ascending: true, nullsFirst: false }).order("created_at");
       if (error) throw error;
       return (data ?? []) as Goal[];
     },
@@ -58,7 +58,7 @@ export function useAllGoals() {
   return useQuery({
     queryKey: ["goals", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("goals").select("*").order("created_at");
+      const { data, error } = await supabase.from("goals").select("*").order("target_date", { ascending: true, nullsFirst: false }).order("created_at");
       if (error) throw error;
       return (data ?? []) as Goal[];
     },
