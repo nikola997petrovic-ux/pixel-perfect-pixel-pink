@@ -7,9 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
+import { EditAreaDialog } from "@/components/EditAreaDialog";
 import { Plus, Trash2, Pencil, Check, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -217,6 +218,7 @@ function SortableDomainGrid({
   const reorder = useReorderAreas();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = areas.map((a) => a.id);
@@ -300,7 +302,15 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
           <div className="absolute top-0 left-0 h-full transition-all" style={{ width: `${pct}%`, backgroundColor: area.color }} />
         </div>
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <EditAreaDialog
+          area={area}
+          trigger={
+            <button type="button" className="text-[10px] uppercase tracking-widest text-ink-muted hover:text-ink flex items-center gap-1">
+              <Pencil className="size-3" /> Edit
+            </button>
+          }
+        />
         <Link
           to="/areas/$areaId"
           params={{ areaId: area.id }}

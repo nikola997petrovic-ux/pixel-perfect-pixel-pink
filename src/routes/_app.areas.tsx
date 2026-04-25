@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import type { Area } from "@/lib/types";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -26,6 +26,7 @@ function AreasPage() {
   const reorder = useReorderAreas();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = areas.map((a) => a.id);
@@ -115,7 +116,6 @@ function SortableAreaCard({
             {...listeners}
             aria-label="Drag to reorder"
             onClick={(e) => e.preventDefault()}
-            onPointerDown={(e) => e.stopPropagation()}
             className="-ml-1 mt-0.5 flex items-center gap-1.5 px-2.5 py-2 bg-paper border border-ruling text-ink cursor-grab active:cursor-grabbing touch-none shrink-0 md:px-2 md:py-1.5 md:text-ink-muted"
           >
             <GripVertical className="size-4 shrink-0" />
