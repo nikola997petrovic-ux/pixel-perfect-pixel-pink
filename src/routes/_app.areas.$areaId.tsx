@@ -181,7 +181,7 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
   const dueDate = task.due_date ? parseDate(task.due_date) : null;
   const overdue = dueDate && !task.completed && isPast(dueDate) && !isToday(dueDate);
 
-  const startEdit = () => {
+  function openEdit() {
     setTitle(task.title);
     setDue(task.due_date ?? "");
     if (task.recurrence === "daily") {
@@ -198,23 +198,24 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
       setSelectedDays([]);
     }
     setEditing(true);
-  };
+  }
 
-  const cancelEdit = () => setEditing(false);
+  function closeEdit() { setEditing(false); }
 
-  const cycleRecur = () => {
+  function cycleRecur() {
     setRecurMode((m) => {
       if (m === "none") return "daily";
       if (m === "daily") return "weekly";
       setSelectedDays([]);
       return "none";
     });
-  };
+  }
 
-  const toggleDay = (d: number) =>
+  function toggleDay(d: number) {
     setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+  }
 
-  const saveEdit = async (e: FormEvent) => {
+  async function handleSave(e: FormEvent) {
     e.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) { toast.error("Title required"); return; }
@@ -224,53 +225,44 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
     const notes = setDaysInNotes(days, getDisplayNotes(task.notes)) || null;
     await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence, notes });
     setEditing(false);
-  };
+  }
 
   if (editing) {
     return (
-      <form onSubmit={saveEdit} className="flex flex-col gap-2 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <form onSubmit={handleSave} className="flex flex-col gap-3 py-3 px-3 mb-1 border border-ruling bg-paper-light rounded">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={200}
             autoFocus
-            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 outline-none focus:border-ink/50"
+            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 outline-none focus:border-ink"
           />
           <input
             type="date"
             value={due}
             onChange={(e) => setDue(e.target.value)}
-            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm sm:w-40 outline-none focus:border-ink/50"
+            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm sm:w-40 outline-none focus:border-ink"
           />
           <button
             type="button"
             onClick={cycleRecur}
-            aria-pressed={recurMode !== "none"}
             title={recurMode === "none" ? "No recurrence" : recurMode === "daily" ? "Daily" : "Specific days"}
-            className={`p-2 border rounded transition-colors ${recurMode !== "none" ? "border-ink bg-paper-light text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
+            className={`px-3 py-1.5 border rounded text-sm transition-colors ${recurMode !== "none" ? "border-ink bg-paper text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
           >
             <Repeat className="size-3.5" />
           </button>
-          <div className="flex items-center gap-1">
-            <button type="submit" className="p-2 text-ink hover:bg-paper-light rounded" aria-label="Save">
-              <Check className="size-4" />
-            </button>
-            <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper-light rounded" aria-label="Cancel">
-              <X className="size-4" />
-            </button>
-          </div>
         </div>
         {recurMode === "weekly" && (
-          <div className="flex items-center gap-1.5 pl-0.5">
+          <div className="flex items-center gap-1.5">
             <span className="text-[10px] uppercase tracking-widest text-ink-muted">Days</span>
             {WEEK_DAYS.map(({ label, dow }) => (
               <button
                 type="button"
                 key={dow}
                 onClick={() => toggleDay(dow)}
-                className={`w-6 h-6 text-[10px] font-medium border transition-colors ${
-                  selectedDays.includes(dow) ? "border-ink text-ink bg-paper-light" : "border-ruling text-ink-muted hover:text-ink"
+                className={`w-7 h-7 text-xs font-medium border rounded transition-colors ${
+                  selectedDays.includes(dow) ? "border-ink bg-ink text-paper" : "border-ruling text-ink-muted hover:border-ink hover:text-ink"
                 }`}
               >
                 {label}
@@ -279,43 +271,54 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
           </div>
         )}
         {recurMode !== "none" && (
-          <p className="text-[10px] text-ink-muted pl-0.5">
-            {recurMode === "daily"
-              ? "Repeats every day"
-              : selectedDays.length === 0
-                ? "Select days above"
-                : `Repeats every ${selectedDays.map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]).join(", ")}`}
+          <p className="text-[11px] text-ink-muted">
+            {recurMode === "daily" ? "Repeats every day" : selectedDays.length === 0 ? "Select days above" : `Repeats every ${selectedDays.map((d) => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]).join(", ")}`}
           </p>
         )}
+        <div className="flex gap-2">
+          <button type="submit" className="px-4 py-1.5 bg-ink text-paper text-sm rounded hover:bg-ink/80 transition-colors">
+            Save
+          </button>
+          <button type="button" onClick={closeEdit} className="px-4 py-1.5 border border-ruling text-ink-muted text-sm rounded hover:text-ink transition-colors">
+            Cancel
+          </button>
+        </div>
       </form>
     );
   }
 
   return (
-    <div className="group flex items-center gap-3 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
+    <div className="flex items-center gap-3 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
       <Checkbox
         checked={task.completed}
         onCheckedChange={(c) => toggle.mutate({ id: task.id, area_id: task.area_id, completed: !!c })}
-        className="size-4 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
+        className="size-4 shrink-0 border-ink-muted data-[state=checked]:bg-ink data-[state=checked]:border-ink"
         style={{ accentColor: accent }}
       />
-      <span className={`text-sm flex-1 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>
+      <span className={`text-sm flex-1 min-w-0 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>
         {task.title}
         {task.recurrence && (
-          <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" aria-label={(() => { const d = getDaysFromNotes(task.notes); return d?.length ? formatDaysLabel(d) : "Daily"; })()} />
+          <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" />
         )}
       </span>
-      <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
-        {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : "—"}
+      <span className={`text-xs tabular-nums shrink-0 ${overdue ? "text-overdue" : "text-ink-muted"}`}>
+        {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : ""}
       </span>
-      <div className="flex items-center gap-1 shrink-0">
-        <button onClick={startEdit} className="p-1.5 text-ink-muted hover:text-ink hover:bg-paper-light rounded" aria-label="Edit task">
-          <Pencil className="size-3.5" />
-        </button>
-        <button onClick={() => del.mutate({ id: task.id, area_id: task.area_id })} className="p-1.5 text-ink-muted hover:text-overdue hover:bg-paper-light rounded" aria-label="Delete task">
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={openEdit}
+        className="shrink-0 px-2 py-1 text-xs font-medium bg-white text-black border border-gray-400 rounded hover:bg-gray-100 transition-colors"
+      >
+        Edit
+      </button>
+      <button
+        type="button"
+        onClick={() => del.mutate({ id: task.id, area_id: task.area_id })}
+        className="shrink-0 text-ink-muted hover:text-overdue transition-colors"
+        aria-label="Delete task"
+      >
+        <Trash2 className="size-4" />
+      </button>
     </div>
   );
 }

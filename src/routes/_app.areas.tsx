@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useAreas, useAllTasks, useStreaks, useDeleteArea, useReorderAreas } from "@/lib/api";
 import { AreaQuickTaskForm } from "@/components/AreaQuickTaskForm";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
@@ -14,9 +14,15 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStr
 import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/_app/areas")({
-  component: AreasPage,
+  component: AreasLayout,
   head: () => ({ meta: [{ title: "Domains — Monograph" }] }),
 });
+
+function AreasLayout() {
+  const { pathname } = useLocation();
+  if (pathname !== "/areas") return <Outlet />;
+  return <AreasPage />;
+}
 
 function AreasPage() {
   const { data: areas = [], isLoading } = useAreas();
