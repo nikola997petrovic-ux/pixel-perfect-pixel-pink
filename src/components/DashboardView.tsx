@@ -2,6 +2,7 @@ import { format, isToday, isPast, isThisWeek, isTomorrow, addDays } from "date-f
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
 import { useAreas, useAllTasks, useAllGoals, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
+import { GoalRowEditable } from "@/components/GoalRowEditable";
 import { isTaskScheduledToday, isTaskScheduledOn, getDaysFromNotes, setDaysInNotes, getDisplayNotes, formatDaysLabel } from "@/lib/recurrence";
 import type { Area, Goal, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -213,8 +214,8 @@ export function DashboardView() {
                     <div className="flex-1 h-px bg-ruling" />
                   </div>
                   <div className="flex flex-col">
-                    {active.map((g) => <GoalRow key={g.id} goal={g} />)}
-                    {completed.map((g) => <GoalRow key={g.id} goal={g} />)}
+                    {active.map((g) => <GoalRowEditable key={g.id} goal={g} />)}
+                    {completed.map((g) => <GoalRowEditable key={g.id} goal={g} />)}
                   </div>
                 </div>
               );
@@ -338,32 +339,6 @@ function DomainCard({ area, stats, streak }: { area: Area; stats?: { total: numb
         >
           Open
         </Link>
-      </div>
-    </div>
-  );
-}
-
-function GoalRow({ goal }: { goal: Goal }) {
-  const isCompleted = goal.status === "completed";
-  const isPaused = goal.status === "paused";
-  return (
-    <div className="flex items-baseline gap-3 py-2.5 border-b border-ruling border-dashed last:border-0">
-      <span
-        className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
-          isCompleted ? "bg-ink-muted" : isPaused ? "bg-ruling" : "bg-ink"
-        }`}
-      />
-      <span className={`text-sm flex-1 min-w-0 ${isCompleted ? "line-through text-ink-muted" : isPaused ? "text-ink-muted" : "text-ink"}`}>
-        {goal.title}
-      </span>
-      <div className="flex items-center gap-2 shrink-0">
-        {goal.target_date && (
-          <span className="text-xs text-ink-muted tabular-nums">
-            {format(new Date(goal.target_date.replace(/-/g, "/")), "MMM d")}
-          </span>
-        )}
-        {isPaused && <span className="text-[10px] uppercase tracking-widest text-ink-muted">Paused</span>}
-        {isCompleted && <span className="text-[10px] uppercase tracking-widest text-ink-muted">Done</span>}
       </div>
     </div>
   );

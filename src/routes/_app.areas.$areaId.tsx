@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useAreas, useGoals, useTasksForArea, useStreaks,
-  useCreateGoal, useDeleteGoal, useCreateTask, useToggleTask, useDeleteTask, useUpdateTask,
+  useCreateGoal, useUpdateGoal, useDeleteGoal, useCreateTask, useToggleTask, useDeleteTask, useUpdateTask,
 } from "@/lib/api";
 import type { Goal, Task } from "@/lib/types";
 import { getDaysFromNotes, setDaysInNotes, getDisplayNotes, formatDaysLabel } from "@/lib/recurrence";
@@ -116,13 +116,43 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
   const numericPct = hasNumeric ? Math.min(100, Math.round((done / (goal.target_count as number)) * 100)) : 0;
   const taskPct = total === 0 ? 0 : Math.round((done / total) * 100);
   const pct = hasNumeric ? numericPct : taskPct;
+  const update = useUpdateGoal();
   const del = useDeleteGoal();
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(goal.title);
+
+  const saveTitle = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = titleDraft.trim();
+    if (!trimmed) { toast.error("Title required"); return; }
+    if (trimmed.length > 120) { toast.error("Title too long"); return; }
+    await update.mutateAsync({ id: goal.id, area_id: goal.area_id, title: trimmed });
+    setEditingTitle(false);
+  };
 
   return (
     <div className="bg-paper-light border border-ruling p-5 md:p-6 flex flex-col gap-5">
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h4 className="font-serif text-lg md:text-xl">{goal.title}</h4>
+          {editingTitle ? (
+            <form onSubmit={saveTitle} className="flex items-center gap-2">
+              <input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                maxLength={120}
+                autoFocus
+                className="font-serif text-lg md:text-xl bg-paper border border-ruling px-2 py-0.5 flex-1 min-w-0 outline-none focus:border-ink"
+              />
+              <button type="submit" className="p-1.5 text-ink hover:bg-paper rounded shrink-0" aria-label="Save">
+                <Check className="size-4" />
+              </button>
+              <button type="button" onClick={() => { setTitleDraft(goal.title); setEditingTitle(false); }} className="p-1.5 text-ink-muted hover:text-ink rounded shrink-0" aria-label="Cancel">
+                <X className="size-4" />
+              </button>
+            </form>
+          ) : (
+            <h4 className="font-serif text-lg md:text-xl">{goal.title}</h4>
+          )}
           {goal.description && <p className="text-sm text-ink-muted mt-1">{goal.description}</p>}
           {goal.target_date && (
             <p className="text-xs text-ink-muted mt-2 uppercase tracking-widest">
@@ -130,9 +160,16 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
             </p>
           )}
         </div>
-        <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-overdue" onClick={() => del.mutate({ id: goal.id, area_id: goal.area_id })}>
-          <Trash2 className="size-4" />
-        </Button>
+        {!editingTitle && (
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-ink" onClick={() => { setTitleDraft(goal.title); setEditingTitle(true); }}>
+              <Pencil className="size-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-overdue" onClick={() => del.mutate({ id: goal.id, area_id: goal.area_id })}>
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {hasNumeric && (

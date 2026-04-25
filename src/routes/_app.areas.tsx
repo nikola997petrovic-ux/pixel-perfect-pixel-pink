@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useAreas, useAllTasks, useAllGoals, useStreaks, useDeleteArea, useReorderAreas } from "@/lib/api";
 import { AreaQuickTaskForm } from "@/components/AreaQuickTaskForm";
+import { GoalRowEditable } from "@/components/GoalRowEditable";
 import { NewAreaDialog } from "@/components/NewAreaDialog";
 import { EditAreaDialog } from "@/components/EditAreaDialog";
 import { Trash2, GripVertical } from "lucide-react";
@@ -164,26 +165,9 @@ function SortableAreaCard({
         <div className="h-full" style={{ width: `${stats.pct}%`, backgroundColor: area.color }} />
       </div>
       {goals.length > 0 && (
-        <div className="flex flex-col gap-1 pt-1 border-t border-ruling/60 border-dashed">
+        <div className="flex flex-col pt-1 border-t border-ruling/60 border-dashed">
           <p className="text-[10px] uppercase tracking-widest text-ink-muted mb-1">Goals</p>
-          {goals.map((g) => (
-            <div key={g.id} className="flex items-baseline gap-2 py-1">
-              <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${
-                  g.status === "completed" ? "bg-ink-muted" : g.status === "paused" ? "bg-ruling" : "bg-ink"
-                }`}
-              />
-              <span className={`text-sm flex-1 min-w-0 truncate ${g.status !== "active" ? "text-ink-muted" : "text-ink"} ${g.status === "completed" ? "line-through" : ""}`}>
-                {g.title}
-              </span>
-              {g.target_date && (
-                <span className="text-xs text-ink-muted tabular-nums shrink-0">
-                  {new Date(g.target_date.replace(/-/g, "/")).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </span>
-              )}
-              {g.status === "paused" && <span className="text-[10px] uppercase tracking-widest text-ink-muted shrink-0">Paused</span>}
-            </div>
-          ))}
+          {goals.map((g) => <GoalRowEditable key={g.id} goal={g} />)}
         </div>
       )}
       <AreaQuickTaskForm areaId={area.id} accent={area.color} />
