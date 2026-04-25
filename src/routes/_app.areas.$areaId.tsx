@@ -238,17 +238,28 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
             autoFocus
             className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 outline-none focus:border-ink"
           />
-          <input
-            type="date"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm sm:w-40 outline-none focus:border-ink"
-          />
+          <div className="flex items-stretch gap-1">
+            <input
+              type="date"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 sm:w-36 outline-none focus:border-ink"
+            />
+            <button
+              type="button"
+              onClick={() => setDue("")}
+              title="Clear date"
+              aria-label="Clear date"
+              className="w-9 h-9 flex items-center justify-center border border-ruling rounded text-ink-muted hover:text-ink hover:border-ink transition-colors shrink-0"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
           <button
             type="button"
             onClick={cycleRecur}
             title={recurMode === "none" ? "No recurrence" : recurMode === "daily" ? "Daily" : "Specific days"}
-            className={`px-3 py-1.5 border rounded text-sm transition-colors ${recurMode !== "none" ? "border-ink bg-paper text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
+            className={`w-9 h-9 flex items-center justify-center border rounded shrink-0 transition-colors ${recurMode !== "none" ? "border-ink bg-paper text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
           >
             <Repeat className="size-3.5" />
           </button>
@@ -360,13 +371,24 @@ function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: 
     <form onSubmit={submit} className="flex flex-col gap-1.5 pt-2 border-t border-ruling/60 border-dashed">
       <div className="flex flex-col sm:flex-row gap-2">
         <Input ref={inputRef} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={placeholder} maxLength={200} className="bg-paper border-ruling flex-1" />
-        <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
+        <div className="flex items-stretch gap-1">
+          <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling flex-1 sm:w-36" />
+          <button
+            type="button"
+            onClick={() => setDue("")}
+            title="Clear date"
+            aria-label="Clear date"
+            className="w-9 h-9 flex items-center justify-center border border-ruling rounded text-ink-muted hover:text-ink hover:border-ink transition-colors shrink-0"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
         <button
           type="button"
           onClick={cycleRecur}
           aria-pressed={recurMode !== "none"}
           title={recurMode === "none" ? "No recurrence" : recurMode === "daily" ? "Daily" : "Specific days"}
-          className={`p-2 border rounded transition-colors ${recurMode !== "none" ? "border-ink bg-paper-light text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
+          className={`w-9 h-9 flex items-center justify-center border rounded shrink-0 transition-colors ${recurMode !== "none" ? "border-ink bg-paper-light text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
         >
           <Repeat className="size-3.5" />
         </button>

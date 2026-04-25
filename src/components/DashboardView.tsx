@@ -415,7 +415,12 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
       >
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus className="bg-paper border-ruling flex-1" />
-          <Input ref={dateRef} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
+          <div className="flex items-stretch gap-1">
+            <Input ref={dateRef} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling flex-1 sm:w-36" />
+            <button type="button" onClick={() => setDue("")} title="Clear date" aria-label="Clear date" className="w-9 h-9 flex items-center justify-center border border-ruling text-ink-muted hover:text-ink hover:border-ink rounded transition-colors shrink-0">
+              <X className="size-3.5" />
+            </button>
+          </div>
           <div className="flex items-center gap-1">
             <button type="submit" className="p-2 text-ink hover:bg-paper rounded" aria-label="Save">
               <Check className="size-4" />
