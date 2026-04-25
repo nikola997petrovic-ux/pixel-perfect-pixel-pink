@@ -175,45 +175,116 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [due, setDue] = useState(task.due_date ?? "");
+  const [recurMode, setRecurMode] = useState<"none" | "daily" | "weekly">("none");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const dueDate = task.due_date ? parseDate(task.due_date) : null;
   const overdue = dueDate && !task.completed && isPast(dueDate) && !isToday(dueDate);
 
-  const startEdit = () => { setTitle(task.title); setDue(task.due_date ?? ""); setEditing(true); };
+  const startEdit = () => {
+    setTitle(task.title);
+    setDue(task.due_date ?? "");
+    if (task.recurrence === "daily") {
+      setRecurMode("daily");
+      setSelectedDays([]);
+    } else if (task.recurrence?.startsWith("days:")) {
+      setRecurMode("weekly");
+      setSelectedDays(task.recurrence.slice("days:".length).split(",").map(Number));
+    } else {
+      setRecurMode("none");
+      setSelectedDays([]);
+    }
+    setEditing(true);
+  };
+
   const cancelEdit = () => setEditing(false);
+
+  const cycleRecur = () => {
+    setRecurMode((m) => {
+      if (m === "none") return "daily";
+      if (m === "daily") return "weekly";
+      setSelectedDays([]);
+      return "none";
+    });
+  };
+
+  const toggleDay = (d: number) =>
+    setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) { toast.error("Title required"); return; }
     if (trimmed.length > 200) { toast.error("Title too long"); return; }
-    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null });
+    const recurrence = recurMode === "daily" ? "daily"
+      : recurMode === "weekly" && selectedDays.length > 0
+        ? `days:${[...selectedDays].sort().join(",")}`
+        : null;
+    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence });
     setEditing(false);
   };
 
   if (editing) {
     return (
-      <form onSubmit={saveEdit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={200}
-          autoFocus
-          className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 outline-none focus:border-ink/50"
-        />
-        <input
-          type="date"
-          value={due}
-          onChange={(e) => setDue(e.target.value)}
-          className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm sm:w-40 outline-none focus:border-ink/50"
-        />
-        <div className="flex items-center gap-1">
-          <button type="submit" className="p-2 text-ink hover:bg-paper-light rounded" aria-label="Save">
-            <Check className="size-4" />
+      <form onSubmit={saveEdit} className="flex flex-col gap-2 py-2.5 border-b border-ruling/60 border-dashed last:border-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={200}
+            autoFocus
+            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm flex-1 outline-none focus:border-ink/50"
+          />
+          <input
+            type="date"
+            value={due}
+            onChange={(e) => setDue(e.target.value)}
+            className="bg-paper border border-ruling rounded px-3 py-1.5 text-sm sm:w-40 outline-none focus:border-ink/50"
+          />
+          <button
+            type="button"
+            onClick={cycleRecur}
+            aria-pressed={recurMode !== "none"}
+            title={recurMode === "none" ? "No recurrence" : recurMode === "daily" ? "Daily" : "Specific days"}
+            className={`p-2 border rounded transition-colors ${recurMode !== "none" ? "border-ink bg-paper-light text-ink" : "border-ruling text-ink-muted hover:text-ink"}`}
+          >
+            <Repeat className="size-3.5" />
           </button>
-          <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper-light rounded" aria-label="Cancel">
-            <X className="size-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button type="submit" className="p-2 text-ink hover:bg-paper-light rounded" aria-label="Save">
+              <Check className="size-4" />
+            </button>
+            <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper-light rounded" aria-label="Cancel">
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
+        {recurMode === "weekly" && (
+          <div className="flex items-center gap-1.5 pl-0.5">
+            <span className="text-[10px] uppercase tracking-widest text-ink-muted">Days</span>
+            {WEEK_DAYS.map(({ label, dow }) => (
+              <button
+                type="button"
+                key={dow}
+                onClick={() => toggleDay(dow)}
+                className={`w-6 h-6 text-[10px] font-medium border transition-colors ${
+                  selectedDays.includes(dow) ? "border-ink text-ink bg-paper-light" : "border-ruling text-ink-muted hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {recurMode !== "none" && (
+          <p className="text-[10px] text-ink-muted pl-0.5">
+            {recurMode === "daily"
+              ? "Repeats every day"
+              : selectedDays.length === 0
+                ? "Select days above"
+                : `Repeats every ${selectedDays.map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]).join(", ")}`}
+          </p>
+        )}
       </form>
     );
   }
