@@ -59,12 +59,12 @@
 :root {
   --radius: 0.5rem;
 
-  /* Deep Navy + Steel — masculine editorial */
-  --paper: oklch(0.18 0.035 255);          /* deep navy background */
-  --paper-light: oklch(0.235 0.04 255);    /* slightly lifted navy panel */
-  --ink: oklch(0.96 0.012 240);            /* off-white ink */
-  --ink-muted: oklch(0.72 0.03 240);       /* steel gray-blue */
-  --ruling: oklch(0.34 0.045 250);         /* navy rule line */
+  /* Rolex Green-Steel */
+  --paper: oklch(0.17 0.055 155);          /* deep forest green */
+  --paper-light: oklch(0.22 0.065 155);    /* lifted green panel */
+  --ink: oklch(0.97 0.005 145);            /* crisp white */
+  --ink-muted: oklch(0.68 0.015 200);      /* steel silver */
+  --ruling: oklch(0.30 0.05 155);          /* dark green rule */
   --overdue: oklch(0.66 0.16 35);          /* warm rust-amber */
 
   --background: var(--paper);
@@ -73,13 +73,13 @@
   --card-foreground: var(--ink);
   --popover: var(--paper-light);
   --popover-foreground: var(--ink);
-  --primary: oklch(0.62 0.13 245);         /* steel blue accent */
-  --primary-foreground: oklch(0.98 0.005 240);
-  --secondary: oklch(0.91 0.012 70);
+  --primary: oklch(0.58 0.10 155);         /* Rolex green accent */
+  --primary-foreground: oklch(0.97 0.005 145);
+  --secondary: oklch(0.27 0.06 155);
   --secondary-foreground: var(--ink);
-  --muted: oklch(0.91 0.012 70);
+  --muted: oklch(0.27 0.06 155);
   --muted-foreground: var(--ink-muted);
-  --accent: oklch(0.91 0.012 70);
+  --accent: oklch(0.27 0.06 155);
   --accent-foreground: var(--ink);
   --destructive: var(--overdue);
   --destructive-foreground: var(--paper);
@@ -87,11 +87,11 @@
   --input: var(--ruling);
   --ring: var(--ink-muted);
 
-  --chart-1: oklch(0.55 0.05 220);
-  --chart-2: oklch(0.6 0.09 40);
-  --chart-3: oklch(0.6 0.06 145);
-  --chart-4: oklch(0.65 0.07 90);
-  --chart-5: oklch(0.5 0.08 300);
+  --chart-1: oklch(0.55 0.10 155);
+  --chart-2: oklch(0.60 0.09 40);
+  --chart-3: oklch(0.65 0.07 200);
+  --chart-4: oklch(0.62 0.07 90);
+  --chart-5: oklch(0.50 0.08 120);
 
   --sidebar: var(--paper);
   --sidebar-foreground: var(--ink);
@@ -104,11 +104,11 @@
 }
 
 .dark {
-  --paper: oklch(0.18 0.01 60);
-  --paper-light: oklch(0.22 0.01 60);
-  --ink: oklch(0.95 0.008 75);
-  --ink-muted: oklch(0.7 0.012 70);
-  --ruling: oklch(0.32 0.012 60);
+  --paper: oklch(0.13 0.045 155);
+  --paper-light: oklch(0.18 0.055 155);
+  --ink: oklch(0.97 0.005 145);
+  --ink-muted: oklch(0.65 0.015 200);
+  --ruling: oklch(0.26 0.045 155);
 }
 
 @layer base {
