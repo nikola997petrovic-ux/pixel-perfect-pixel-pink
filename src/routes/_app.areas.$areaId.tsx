@@ -219,7 +219,7 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
       <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
         {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : "—"}
       </span>
-      <div className="flex items-center gap-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1">
         <button onClick={startEdit} className="p-1 text-ink-muted hover:text-ink rounded" aria-label="Edit task">
           <Pencil className="size-3.5" />
         </button>

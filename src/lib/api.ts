@@ -229,18 +229,22 @@ export function useToggleTask() {
       if (error) throw error;
       return area_id;
     },
-    // Optimistic: update both queries
+    // Optimistic: snapshot first, update immediately, then cancel in-flight queries
     onMutate: async ({ id, completed, area_id }) => {
-      await qc.cancelQueries({ queryKey: qk.allTasks });
-      await qc.cancelQueries({ queryKey: qk.tasks(area_id) });
       const prevAll = qc.getQueryData<Task[]>(qk.allTasks);
       const prevArea = qc.getQueryData<Task[]>(qk.tasks(area_id));
-      qc.setQueryData<Task[]>(qk.allTasks, (old) =>
-        old?.map((t) => (t.id === id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t)),
-      );
-      qc.setQueryData<Task[]>(qk.tasks(area_id), (old) =>
-        old?.map((t) => (t.id === id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t)),
-      );
+      const today = new Date().toISOString().slice(0, 10);
+      const apply = (t: Task): Task => t.id !== id ? t : {
+        ...t,
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+        ...(completed ? { last_completed_date: today } : {}),
+      };
+      qc.setQueryData<Task[]>(qk.allTasks, (old) => old?.map(apply));
+      qc.setQueryData<Task[]>(qk.tasks(area_id), (old) => old?.map(apply));
+      // Cancel after updating so any in-flight refetch doesn't overwrite the optimistic data
+      await qc.cancelQueries({ queryKey: qk.allTasks });
+      await qc.cancelQueries({ queryKey: qk.tasks(area_id) });
       return { prevAll, prevArea, area_id };
     },
     onError: (e: any, _v, ctx) => {
