@@ -3,7 +3,7 @@ import { isPast, isToday, format } from "date-fns";
 import { Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateTask, useTasksForArea, useToggleTask, useDeleteTask } from "@/lib/api";
-import { formatWeeklyLabel } from "@/lib/recurrence";
+import { getDaysFromNotes, setDaysInNotes, formatDaysLabel } from "@/lib/recurrence";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,25 +47,23 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
   const toggleDay = (d: number) =>
     setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
 
-  const getRecurrence = (): string | null => {
-    if (recurMode === "daily") return "daily";
-    if (recurMode === "weekly" && selectedDays.length > 0)
-      return `days:${[...selectedDays].sort().join(",")}`;
-    return null;
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
     if (trimmedTitle.length > 200) { toast.error("Title too long"); return; }
 
+    const recurrence = recurMode !== "none" ? "daily" : null;
+    const notes = recurMode === "weekly" && selectedDays.length > 0
+      ? setDaysInNotes(selectedDays, "") : null;
+
     await createTask.mutateAsync({
       area_id: areaId,
       goal_id: null,
       title: trimmedTitle,
       due_date: null,
-      recurrence: getRecurrence(),
+      recurrence,
+      notes: notes ?? undefined,
     });
 
     setTitle("");
@@ -81,11 +79,10 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
           {visibleTasks.map((t) => {
             const due = t.due_date ? parseDate(t.due_date) : null;
             const overdue = due && !t.completed && isPast(due) && !isToday(due);
+            const days = getDaysFromNotes(t.notes);
             const recurLabel = t.recurrence === "daily"
-              ? "Daily"
-              : t.recurrence?.startsWith("days:")
-                ? formatWeeklyLabel(t.recurrence)
-                : null;
+              ? (days?.length ? formatDaysLabel(days) : "Daily")
+              : null;
             return (
               <li key={t.id} className="group flex items-center gap-3 py-1.5">
                 <Checkbox

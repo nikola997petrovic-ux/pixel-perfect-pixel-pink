@@ -2,7 +2,7 @@ import { format, isToday, isPast, isThisWeek, isTomorrow, addDays } from "date-f
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
 import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
-import { isScheduledToday, isScheduledOn, formatWeeklyLabel, parseWeeklyDays } from "@/lib/recurrence";
+import { isTaskScheduledToday, isTaskScheduledOn, getDaysFromNotes, setDaysInNotes, getDisplayNotes, formatDaysLabel } from "@/lib/recurrence";
 import type { Area, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -52,9 +52,9 @@ export function DashboardView() {
   const dueThisWeek = tasks
     .filter((t) => !t.completed && t.due_date && (isToday(parseDate(t.due_date)) || (isThisWeek(parseDate(t.due_date), { weekStartsOn: 1 }) && !isPast(parseDate(t.due_date)))))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
-  const dailies = tasks.filter((t) => isScheduledToday(t.recurrence));
+  const dailies = tasks.filter((t) => isTaskScheduledToday(t));
   // Tomorrow: tasks dated for tomorrow + all tasks recurring tomorrow
-  const tomorrowRecurring = tasks.filter((t) => isScheduledOn(t.recurrence, tomorrowDateObj));
+  const tomorrowRecurring = tasks.filter((t) => isTaskScheduledOn(t, tomorrowDateObj));
   const tomorrowDated = tasks.filter((t) => t.due_date === tomorrowKey && !tomorrowRecurring.some((r) => r.id === t.id));
   const tomorrow = [...tomorrowDated, ...tomorrowRecurring].sort((a, b) => a.title.localeCompare(b.title));
   const unscheduled = tasks
@@ -371,20 +371,21 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
         ? "Tomorrow"
         : format(dueDate, "EEE, MMM d")
     : task.recurrence === "daily"
-      ? "Daily"
-      : task.recurrence?.startsWith("days:")
-        ? formatWeeklyLabel(task.recurrence)
-        : "Unscheduled";
+      ? (() => { const d = getDaysFromNotes(task.notes); return d?.length ? formatDaysLabel(d) : "Daily"; })()
+      : "Unscheduled";
 
   const startEdit = () => {
     setTitle(task.title);
     setDue(task.due_date ?? "");
     if (task.recurrence === "daily") {
-      setRecurMode("daily");
-      setSelectedDays([]);
-    } else if (task.recurrence?.startsWith("days:")) {
-      setRecurMode("weekly");
-      setSelectedDays(parseWeeklyDays(task.recurrence));
+      const days = getDaysFromNotes(task.notes);
+      if (days && days.length > 0) {
+        setRecurMode("weekly");
+        setSelectedDays(days);
+      } else {
+        setRecurMode("daily");
+        setSelectedDays([]);
+      }
     } else {
       setRecurMode("none");
       setSelectedDays([]);
@@ -397,11 +398,10 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
     const trimmed = title.trim();
     if (!trimmed) { toast.error("Title required"); return; }
     if (trimmed.length > 200) { toast.error("Title too long"); return; }
-    const recurrence = recurMode === "daily" ? "daily"
-      : recurMode === "weekly" && selectedDays.length > 0
-        ? `days:${[...selectedDays].sort().join(",")}`
-        : null;
-    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence });
+    const recurrence = recurMode !== "none" ? "daily" : null;
+    const days = recurMode === "weekly" && selectedDays.length > 0 ? selectedDays : null;
+    const notes = setDaysInNotes(days, getDisplayNotes(task.notes)) || null;
+    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence, notes });
     setEditing(false);
   };
   const toggleDay = (d: number) =>

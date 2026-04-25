@@ -10,7 +10,7 @@ import {
   useCreateGoal, useDeleteGoal, useCreateTask, useToggleTask, useDeleteTask, useUpdateTask,
 } from "@/lib/api";
 import type { Goal, Task } from "@/lib/types";
-import { formatWeeklyLabel } from "@/lib/recurrence";
+import { getDaysFromNotes, setDaysInNotes, getDisplayNotes, formatDaysLabel } from "@/lib/recurrence";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -185,11 +185,14 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
     setTitle(task.title);
     setDue(task.due_date ?? "");
     if (task.recurrence === "daily") {
-      setRecurMode("daily");
-      setSelectedDays([]);
-    } else if (task.recurrence?.startsWith("days:")) {
-      setRecurMode("weekly");
-      setSelectedDays(task.recurrence.slice("days:".length).split(",").map(Number));
+      const days = getDaysFromNotes(task.notes);
+      if (days && days.length > 0) {
+        setRecurMode("weekly");
+        setSelectedDays(days);
+      } else {
+        setRecurMode("daily");
+        setSelectedDays([]);
+      }
     } else {
       setRecurMode("none");
       setSelectedDays([]);
@@ -216,11 +219,10 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
     const trimmed = title.trim();
     if (!trimmed) { toast.error("Title required"); return; }
     if (trimmed.length > 200) { toast.error("Title too long"); return; }
-    const recurrence = recurMode === "daily" ? "daily"
-      : recurMode === "weekly" && selectedDays.length > 0
-        ? `days:${[...selectedDays].sort().join(",")}`
-        : null;
-    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence });
+    const recurrence = recurMode !== "none" ? "daily" : null;
+    const days = recurMode === "weekly" && selectedDays.length > 0 ? selectedDays : null;
+    const notes = setDaysInNotes(days, getDisplayNotes(task.notes)) || null;
+    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence, notes });
     setEditing(false);
   };
 
@@ -300,7 +302,7 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
       <span className={`text-sm flex-1 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>
         {task.title}
         {task.recurrence && (
-          <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" aria-label={task.recurrence === "daily" ? "Daily" : formatWeeklyLabel(task.recurrence)} />
+          <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" aria-label={(() => { const d = getDaysFromNotes(task.notes); return d?.length ? formatDaysLabel(d) : "Daily"; })()} />
         )}
       </span>
       <span className={`text-xs tabular-nums ${overdue ? "text-overdue" : "text-ink-muted"}`}>
@@ -338,19 +340,15 @@ function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: 
   const toggleDay = (d: number) =>
     setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
 
-  const getRecurrence = (): string | null => {
-    if (recurMode === "daily") return "daily";
-    if (recurMode === "weekly" && selectedDays.length > 0)
-      return `days:${[...selectedDays].sort().join(",")}`;
-    return null;
-  };
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = title.trim();
     if (!t) return;
     if (t.length > 200) { toast.error("Title too long"); return; }
-    await create.mutateAsync({ goal_id: goalId, area_id: areaId, title: t, due_date: due || null, recurrence: getRecurrence() });
+    const recurrence = recurMode !== "none" ? "daily" : null;
+    const notes = recurMode === "weekly" && selectedDays.length > 0
+      ? setDaysInNotes(selectedDays, "") : undefined;
+    await create.mutateAsync({ goal_id: goalId, area_id: areaId, title: t, due_date: due || null, recurrence, notes });
     setTitle(""); setDue(""); setRecurMode("none"); setSelectedDays([]);
     inputRef.current?.focus();
   };

@@ -2,56 +2,60 @@ import type { Task } from "@/lib/types";
 
 const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-// "days:1,3" → [1, 3]
-export function parseWeeklyDays(recurrence: string): number[] {
-  return recurrence.slice("days:".length).split(",").map(Number);
+// Days are stored as a hidden prefix in the notes field because the DB
+// constraint only allows recurrence = NULL | 'daily'.
+// Format: <!--days:1,3-->user notes here
+const DAYS_RE = /^<!--days:(\d(?:,\d)*)-->/;
+
+export function getDaysFromNotes(notes: string | null | undefined): number[] | null {
+  if (!notes) return null;
+  const m = notes.match(DAYS_RE);
+  return m ? m[1].split(",").map(Number) : null;
 }
 
-// "days:1,3" → "Mon, Wed"
-export function formatWeeklyLabel(recurrence: string): string {
-  return parseWeeklyDays(recurrence).map((d) => DAY_ABBR[d]).join(", ");
+export function setDaysInNotes(days: number[] | null, userNotes: string): string {
+  const base = userNotes.replace(DAYS_RE, "");
+  if (!days || days.length === 0) return base;
+  return `<!--days:${[...days].sort().join(",")}-->${base}`;
 }
 
-/** True if a task with this recurrence should appear on the given date. */
-export function isScheduledOn(recurrence: string | null, date: Date): boolean {
-  if (!recurrence) return false;
-  if (recurrence === "daily") return true;
-  if (recurrence.startsWith("days:")) {
-    return parseWeeklyDays(recurrence).includes(date.getDay());
-  }
-  return false;
+export function getDisplayNotes(notes: string | null | undefined): string {
+  return notes?.replace(DAYS_RE, "") ?? "";
 }
 
-export function isScheduledToday(recurrence: string | null): boolean {
-  return isScheduledOn(recurrence, new Date());
+export function formatDaysLabel(days: number[]): string {
+  return days.map((d) => DAY_ABBR[d]).join(", ");
+}
+
+export function isTaskScheduledOn(task: Task, date: Date): boolean {
+  if (!task.recurrence) return false;
+  const days = getDaysFromNotes(task.notes);
+  if (days && days.length > 0) return days.includes(date.getDay());
+  return true; // plain daily
+}
+
+export function isTaskScheduledToday(task: Task): boolean {
+  return isTaskScheduledOn(task, new Date());
 }
 
 export function applyRecurrence(task: Task): Task {
-  const r = task.recurrence;
-  if (!r) return task;
+  if (!task.recurrence) return task;
 
   const today = new Date().toISOString().slice(0, 10);
+  const days = getDaysFromNotes(task.notes);
 
-  if (r === "daily") {
-    if (!task.completed) return task;
-    if (task.last_completed_date && task.last_completed_date >= today) return task;
-    return { ...task, completed: false };
-  }
-
-  if (r.startsWith("days:")) {
-    const scheduledDays = parseWeeklyDays(r);
+  if (days && days.length > 0) {
     const todayDow = new Date().getDay();
-    if (!scheduledDays.includes(todayDow)) {
-      // Not a scheduled day — treat as not-yet-due so it stays out of active lists
-      return { ...task, completed: false };
-    }
-    // Scheduled day: reset if not completed yet today
+    if (!days.includes(todayDow)) return { ...task, completed: false };
     if (!task.completed) return task;
     if (task.last_completed_date && task.last_completed_date >= today) return task;
     return { ...task, completed: false };
   }
 
-  return task;
+  // Plain daily
+  if (!task.completed) return task;
+  if (task.last_completed_date && task.last_completed_date >= today) return task;
+  return { ...task, completed: false };
 }
 
 export function applyRecurrenceMany(tasks: Task[]): Task[] {
