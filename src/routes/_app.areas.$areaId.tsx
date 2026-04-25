@@ -118,51 +118,89 @@ function GoalCard({ goal, tasks, accent }: { goal: Goal; tasks: Task[]; accent: 
   const pct = hasNumeric ? numericPct : taskPct;
   const update = useUpdateGoal();
   const del = useDeleteGoal();
-  const [editingTitle, setEditingTitle] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState(goal.title);
+  const [descDraft, setDescDraft] = useState(goal.description ?? "");
+  const [dateDraft, setDateDraft] = useState(goal.target_date ?? "");
 
-  const saveTitle = async (e: FormEvent) => {
+  const openEdit = () => {
+    setTitleDraft(goal.title);
+    setDescDraft(goal.description ?? "");
+    setDateDraft(goal.target_date ?? "");
+    setEditing(true);
+  };
+
+  const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = titleDraft.trim();
     if (!trimmed) { toast.error("Title required"); return; }
     if (trimmed.length > 120) { toast.error("Title too long"); return; }
-    await update.mutateAsync({ id: goal.id, area_id: goal.area_id, title: trimmed });
-    setEditingTitle(false);
+    await update.mutateAsync({
+      id: goal.id,
+      area_id: goal.area_id,
+      title: trimmed,
+      description: descDraft.trim() || null,
+      target_date: dateDraft || null,
+    });
+    setEditing(false);
   };
 
   return (
     <div className="bg-paper-light border border-ruling p-5 md:p-6 flex flex-col gap-5">
       <div className="flex justify-between items-start gap-3">
-        <div className="min-w-0 flex-1">
-          {editingTitle ? (
-            <form onSubmit={saveTitle} className="flex items-center gap-2">
-              <input
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                maxLength={120}
-                autoFocus
-                className="font-serif text-lg md:text-xl bg-paper border border-ruling px-2 py-0.5 flex-1 min-w-0 outline-none focus:border-ink"
+        {editing ? (
+          <form onSubmit={saveEdit} className="flex flex-col gap-3 flex-1 min-w-0">
+            <input
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              maxLength={120}
+              autoFocus
+              placeholder="Goal title"
+              className="font-serif text-lg md:text-xl bg-paper border border-ruling px-2 py-1 w-full outline-none focus:border-ink"
+            />
+            <Textarea
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              maxLength={500}
+              placeholder="Description (optional)"
+              rows={2}
+              className="bg-paper border-ruling text-sm resize-none"
+            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={dateDraft}
+                onChange={(e) => setDateDraft(e.target.value)}
+                className="bg-paper border-ruling text-sm flex-1"
               />
-              <button type="submit" className="p-1.5 text-ink hover:bg-paper rounded shrink-0" aria-label="Save">
-                <Check className="size-4" />
+              <button
+                type="button"
+                onClick={() => setDateDraft("")}
+                aria-label="Clear date"
+                className="w-9 h-9 flex items-center justify-center border border-ruling text-ink-muted hover:text-ink transition-colors shrink-0"
+              >
+                <X className="size-3.5" />
               </button>
-              <button type="button" onClick={() => { setTitleDraft(goal.title); setEditingTitle(false); }} className="p-1.5 text-ink-muted hover:text-ink rounded shrink-0" aria-label="Cancel">
-                <X className="size-4" />
-              </button>
-            </form>
-          ) : (
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={update.isPending} size="sm" className="bg-ink text-paper hover:bg-ink/80">Save</Button>
+              <Button type="button" variant="outline" size="sm" className="border-ruling text-ink-muted hover:text-ink" onClick={() => setEditing(false)}>Cancel</Button>
+            </div>
+          </form>
+        ) : (
+          <div className="min-w-0 flex-1">
             <h4 className="font-serif text-lg md:text-xl">{goal.title}</h4>
-          )}
-          {goal.description && <p className="text-sm text-ink-muted mt-1">{goal.description}</p>}
-          {goal.target_date && (
-            <p className="text-xs text-ink-muted mt-2 uppercase tracking-widest">
-              Target · {format(parseDate(goal.target_date), "MMM d, yyyy")}
-            </p>
-          )}
-        </div>
-        {!editingTitle && (
+            {goal.description && <p className="text-sm text-ink-muted mt-1">{goal.description}</p>}
+            {goal.target_date && (
+              <p className="text-xs text-ink-muted mt-2 uppercase tracking-widest">
+                Target · {format(parseDate(goal.target_date), "MMM d, yyyy")}
+              </p>
+            )}
+          </div>
+        )}
+        {!editing && (
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-ink" onClick={() => { setTitleDraft(goal.title); setEditingTitle(true); }}>
+            <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-ink" onClick={openEdit}>
               <Pencil className="size-4" />
             </Button>
             <Button variant="ghost" size="icon" className="size-8 text-ink-muted hover:text-overdue" onClick={() => del.mutate({ id: goal.id, area_id: goal.area_id })}>
