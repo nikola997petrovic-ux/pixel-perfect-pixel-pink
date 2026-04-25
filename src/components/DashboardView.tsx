@@ -1,7 +1,8 @@
-import { format, isToday, isPast, isThisWeek, isTomorrow, parseISO, addDays } from "date-fns";
+import { format, isToday, isPast, isThisWeek, isTomorrow, addDays } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, useRef, type FormEvent } from "react";
 import { useAreas, useAllTasks, useStreaks, useToggleTask, useDeleteTask, useUpdateTask, useReorderAreas } from "@/lib/api";
+import { isScheduledToday, isScheduledOn, formatWeeklyLabel, parseWeeklyDays } from "@/lib/recurrence";
 import type { Area, Task, Streak } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -14,13 +15,22 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, 
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// Parse date-only strings (e.g. "2026-04-25") as local midnight.
+// date-fns v3+ parseISO returns UTC midnight for date-only strings, which
+// shifts comparisons like isToday/isPast by the user's UTC offset.
+function parseDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function DashboardView() {
   const { data: areas = [], isLoading: la } = useAreas();
   const { data: tasks = [], isLoading: lt } = useAllTasks();
   const { data: streaks = [] } = useStreaks();
 
   const today = format(new Date(), "EEEE, MMMM d");
-  const tomorrowKey = format(addDays(new Date(), 1), "yyyy-MM-dd");
+  const tomorrowDateObj = addDays(new Date(), 1);
+  const tomorrowKey = format(tomorrowDateObj, "yyyy-MM-dd");
 
   const byArea = useMemo(() => {
     const map = new Map<string, { total: number; done: number }>();
@@ -38,16 +48,17 @@ export function DashboardView() {
     return m;
   }, [streaks]);
 
-  const overdue = tasks.filter((t) => !t.completed && t.due_date && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date)));
+  const overdue = tasks.filter((t) => !t.completed && t.due_date && isPast(parseDate(t.due_date)) && !isToday(parseDate(t.due_date)));
   const dueThisWeek = tasks
-    .filter((t) => !t.completed && t.due_date && (isToday(parseISO(t.due_date)) || (isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && !isPast(parseISO(t.due_date)))))
+    .filter((t) => !t.completed && t.due_date && (isToday(parseDate(t.due_date)) || (isThisWeek(parseDate(t.due_date), { weekStartsOn: 1 }) && !isPast(parseDate(t.due_date)))))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
-  const dailies = tasks.filter((t) => t.recurrence === "daily");
-  // Tomorrow: tasks dated for tomorrow + all daily rituals (they recur, so they appear again tomorrow)
-  const tomorrowDated = tasks.filter((t) => t.due_date === tomorrowKey && t.recurrence !== "daily");
-  const tomorrow = [...tomorrowDated, ...dailies].sort((a, b) => a.title.localeCompare(b.title));
+  const dailies = tasks.filter((t) => isScheduledToday(t.recurrence));
+  // Tomorrow: tasks dated for tomorrow + all tasks recurring tomorrow
+  const tomorrowRecurring = tasks.filter((t) => isScheduledOn(t.recurrence, tomorrowDateObj));
+  const tomorrowDated = tasks.filter((t) => t.due_date === tomorrowKey && !tomorrowRecurring.some((r) => r.id === t.id));
+  const tomorrow = [...tomorrowDated, ...tomorrowRecurring].sort((a, b) => a.title.localeCompare(b.title));
   const unscheduled = tasks
-    .filter((t) => !t.completed && !t.due_date && t.recurrence !== "daily")
+    .filter((t) => !t.completed && !t.due_date && !t.recurrence)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const totalTasks = tasks.length;
@@ -79,7 +90,8 @@ export function DashboardView() {
     "You don't rise to the level of your goals. You fall to the level of your systems. — James Clear",
     "Long-term consistency beats short-term intensity. — Bruce Lee",
   ];
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const _now = new Date();
+  const dayOfYear = Math.floor((_now.getTime() - new Date(_now.getFullYear(), 0, 1).getTime()) / 86400000);
   const dailyQuote = EXCELLENCE_QUOTES[dayOfYear % EXCELLENCE_QUOTES.length];
 
   return (
@@ -99,49 +111,6 @@ export function DashboardView() {
           </p>
         )}
       </header>
-
-      {/* Domains */}
-      <section className="flex flex-col gap-6">
-        <header className="flex items-baseline justify-between border-b border-ruling pb-3">
-          <h3 className="text-xl font-serif">Active Domains</h3>
-          <NewAreaDialog
-            trigger={
-              <button className="text-xs text-ink-muted hover:text-ink uppercase tracking-widest flex items-center gap-1.5">
-                <Plus className="size-3" /> Add
-              </button>
-            }
-          />
-        </header>
-
-        {la ? (
-          <p className="text-sm text-ink-muted">Opening the ledger…</p>
-        ) : areas.length === 0 ? (
-          <div className="border border-dashed border-ruling p-10 text-center">
-            <p className="font-serif text-lg mb-2">No domains yet</p>
-            <p className="text-sm text-ink-muted mb-5 max-w-md mx-auto">
-              Domains are the broad areas of life you want to grow — Craft, Vitality, Intellect, or whatever names yours.
-            </p>
-            <NewAreaDialog />
-          </div>
-        ) : (
-          <SortableDomainGrid
-            areas={areas}
-            byArea={byArea}
-            streakByArea={streakByArea}
-          />
-        )}
-      </section>
-
-      {/* Overdue */}
-      {overdue.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <header className="flex items-baseline justify-between border-b border-ruling pb-3">
-            <h3 className="text-xl font-serif text-overdue">Overdue</h3>
-            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">{overdue.length}</span>
-          </header>
-          <TaskList tasks={overdue} areas={areas} overdue />
-        </section>
-      )}
 
       {/* Tabbed task views */}
       <section className="flex flex-col gap-4 max-w-[900px]">
@@ -201,6 +170,49 @@ export function DashboardView() {
             </TabsContent>
           )}
         </Tabs>
+      </section>
+
+      {/* Overdue */}
+      {overdue.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <header className="flex items-baseline justify-between border-b border-ruling pb-3">
+            <h3 className="text-xl font-serif text-overdue">Overdue</h3>
+            <span className="text-xs text-ink-muted uppercase tracking-widest tabular-nums">{overdue.length}</span>
+          </header>
+          <TaskList tasks={overdue} areas={areas} overdue />
+        </section>
+      )}
+
+      {/* Domains */}
+      <section className="flex flex-col gap-6">
+        <header className="flex items-baseline justify-between border-b border-ruling pb-3">
+          <h3 className="text-xl font-serif">Active Domains</h3>
+          <NewAreaDialog
+            trigger={
+              <button className="text-xs text-ink-muted hover:text-ink uppercase tracking-widest flex items-center gap-1.5">
+                <Plus className="size-3" /> Add
+              </button>
+            }
+          />
+        </header>
+
+        {la ? (
+          <p className="text-sm text-ink-muted">Opening the ledger…</p>
+        ) : areas.length === 0 ? (
+          <div className="border border-dashed border-ruling p-10 text-center">
+            <p className="font-serif text-lg mb-2">No domains yet</p>
+            <p className="text-sm text-ink-muted mb-5 max-w-md mx-auto">
+              Domains are the broad areas of life you want to grow — Craft, Vitality, Intellect, or whatever names yours.
+            </p>
+            <NewAreaDialog />
+          </div>
+        ) : (
+          <SortableDomainGrid
+            areas={areas}
+            byArea={byArea}
+            streakByArea={streakByArea}
+          />
+        )}
       </section>
     </div>
   );
@@ -334,6 +346,11 @@ export function TaskList({ tasks, areas, overdue = false }: { tasks: Task[]; are
   );
 }
 
+const WEEK_DAYS = [
+  { label: "M", dow: 1 }, { label: "T", dow: 2 }, { label: "W", dow: 3 },
+  { label: "T", dow: 4 }, { label: "F", dow: 5 }, { label: "S", dow: 6 }, { label: "S", dow: 0 },
+] as const;
+
 function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: boolean }) {
   const toggle = useToggleTask();
   const del = useDeleteTask();
@@ -342,9 +359,11 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [due, setDue] = useState(task.due_date ?? "");
+  const [recurMode, setRecurMode] = useState<"none" | "daily" | "weekly">("none");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const dateRef = useRef<HTMLInputElement>(null);
 
-  const dueDate = task.due_date ? parseISO(task.due_date) : null;
+  const dueDate = task.due_date ? parseDate(task.due_date) : null;
   const dueLabel = dueDate
     ? isToday(dueDate)
       ? "Today"
@@ -353,11 +372,23 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
         : format(dueDate, "EEE, MMM d")
     : task.recurrence === "daily"
       ? "Daily"
-      : "Unscheduled";
+      : task.recurrence?.startsWith("weekly:")
+        ? formatWeeklyLabel(task.recurrence)
+        : "Unscheduled";
 
   const startEdit = () => {
     setTitle(task.title);
     setDue(task.due_date ?? "");
+    if (task.recurrence === "daily") {
+      setRecurMode("daily");
+      setSelectedDays([]);
+    } else if (task.recurrence?.startsWith("weekly:")) {
+      setRecurMode("weekly");
+      setSelectedDays(parseWeeklyDays(task.recurrence));
+    } else {
+      setRecurMode("none");
+      setSelectedDays([]);
+    }
     setEditing(true);
   };
   const cancelEdit = () => setEditing(false);
@@ -366,25 +397,64 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
     const trimmed = title.trim();
     if (!trimmed) { toast.error("Title required"); return; }
     if (trimmed.length > 200) { toast.error("Title too long"); return; }
-    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null });
+    const recurrence = recurMode === "daily" ? "daily"
+      : recurMode === "weekly" && selectedDays.length > 0
+        ? `weekly:${[...selectedDays].sort().join(",")}`
+        : null;
+    await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence });
     setEditing(false);
   };
+  const toggleDay = (d: number) =>
+    setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
 
   if (editing) {
     return (
       <form
         onSubmit={saveEdit}
-        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 py-3 border-b border-ruling border-dashed last:border-0 -mx-3 md:-mx-4 px-3 md:px-4 bg-paper-light/60"
+        className="flex flex-col gap-2 py-3 border-b border-ruling border-dashed last:border-0 -mx-3 md:-mx-4 px-3 md:px-4 bg-paper-light/60"
       >
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus className="bg-paper border-ruling flex-1" />
-        <Input ref={dateRef} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
-        <div className="flex items-center gap-1">
-          <button type="submit" className="p-2 text-ink hover:bg-paper rounded" aria-label="Save">
-            <Check className="size-4" />
-          </button>
-          <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper rounded" aria-label="Cancel">
-            <X className="size-4" />
-          </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus className="bg-paper border-ruling flex-1" />
+          <Input ref={dateRef} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-paper border-ruling sm:w-44" />
+          <div className="flex items-center gap-1">
+            <button type="submit" className="p-2 text-ink hover:bg-paper rounded" aria-label="Save">
+              <Check className="size-4" />
+            </button>
+            <button type="button" onClick={cancelEdit} className="p-2 text-ink-muted hover:text-ink hover:bg-paper rounded" aria-label="Cancel">
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-widest text-ink-muted mr-0.5">Repeat</span>
+          {(["none", "daily", "weekly"] as const).map((m) => (
+            <button
+              type="button"
+              key={m}
+              onClick={() => setRecurMode(m)}
+              className={`text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${
+                recurMode === m ? "border-ink text-ink" : "border-ruling text-ink-muted hover:text-ink"
+              }`}
+            >
+              {m === "none" ? "None" : m === "daily" ? "Daily" : "Days"}
+            </button>
+          ))}
+          {recurMode === "weekly" && (
+            <div className="flex gap-1 ml-1">
+              {WEEK_DAYS.map(({ label, dow }) => (
+                <button
+                  type="button"
+                  key={dow}
+                  onClick={() => toggleDay(dow)}
+                  className={`w-6 h-6 text-[10px] font-medium border transition-colors ${
+                    selectedDays.includes(dow) ? "border-ink text-ink bg-paper-light" : "border-ruling text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </form>
     );

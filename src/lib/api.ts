@@ -200,7 +200,7 @@ export function useCreateTask() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { goal_id?: string | null; area_id: string; title: string; due_date?: string | null; notes?: string; recurrence?: "daily" | null }) => {
+    mutationFn: async (input: { goal_id?: string | null; area_id: string; title: string; due_date?: string | null; notes?: string; recurrence?: string | null }) => {
       if (!user) throw new Error("Not signed in");
       const { data, error } = await supabase.from("tasks").insert({ ...input, user_id: user.id }).select().single();
       if (error) throw error;
@@ -278,7 +278,7 @@ export function useUpdateTask() {
       id,
       area_id,
       ...patch
-    }: { id: string; area_id: string } & Partial<Pick<Task, "title" | "due_date" | "notes" | "goal_id">>) => {
+    }: { id: string; area_id: string } & Partial<Pick<Task, "title" | "due_date" | "notes" | "goal_id" | "recurrence">>) => {
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
       return area_id;

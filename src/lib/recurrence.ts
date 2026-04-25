@@ -1,16 +1,57 @@
 import type { Task } from "@/lib/types";
 
-/**
- * For a daily-recurring task, treat it as "open" again the moment the
- * calendar day rolls over from when it was last completed.
- * Returns the task with `completed` adjusted for display purposes.
- */
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+// "weekly:1,3" → [1, 3]
+export function parseWeeklyDays(recurrence: string): number[] {
+  return recurrence.slice("weekly:".length).split(",").map(Number);
+}
+
+// "weekly:1,3" → "Mon, Wed"
+export function formatWeeklyLabel(recurrence: string): string {
+  return parseWeeklyDays(recurrence).map((d) => DAY_ABBR[d]).join(", ");
+}
+
+/** True if a task with this recurrence should appear on the given date. */
+export function isScheduledOn(recurrence: string | null, date: Date): boolean {
+  if (!recurrence) return false;
+  if (recurrence === "daily") return true;
+  if (recurrence.startsWith("weekly:")) {
+    return parseWeeklyDays(recurrence).includes(date.getDay());
+  }
+  return false;
+}
+
+export function isScheduledToday(recurrence: string | null): boolean {
+  return isScheduledOn(recurrence, new Date());
+}
+
 export function applyRecurrence(task: Task): Task {
-  if (task.recurrence !== "daily") return task;
-  if (!task.completed) return task;
+  const r = task.recurrence;
+  if (!r) return task;
+
   const today = new Date().toISOString().slice(0, 10);
-  if (task.last_completed_date && task.last_completed_date >= today) return task;
-  return { ...task, completed: false };
+
+  if (r === "daily") {
+    if (!task.completed) return task;
+    if (task.last_completed_date && task.last_completed_date >= today) return task;
+    return { ...task, completed: false };
+  }
+
+  if (r.startsWith("weekly:")) {
+    const scheduledDays = parseWeeklyDays(r);
+    const todayDow = new Date().getDay();
+    if (!scheduledDays.includes(todayDow)) {
+      // Not a scheduled day — treat as not-yet-due so it stays out of active lists
+      return { ...task, completed: false };
+    }
+    // Scheduled day: reset if not completed yet today
+    if (!task.completed) return task;
+    if (task.last_completed_date && task.last_completed_date >= today) return task;
+    return { ...task, completed: false };
+  }
+
+  return task;
 }
 
 export function applyRecurrenceMany(tasks: Task[]): Task[] {
