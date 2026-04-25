@@ -39,13 +39,16 @@ export function DashboardView() {
   }, [streaks]);
 
   const overdue = tasks.filter((t) => !t.completed && t.due_date && isPast(parseDate(t.due_date)) && !isToday(parseDate(t.due_date)));
-  const dueToday = tasks
-    .filter((t) => !t.completed && t.due_date && isToday(parseDate(t.due_date)))
-    .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  const dueTodayDated = tasks.filter((t) => !t.completed && t.due_date && isToday(parseDate(t.due_date)));
+  const dailies = tasks.filter((t) => isTaskScheduledToday(t));
+  const dueTodayIds = new Set(dueTodayDated.map((t) => t.id));
+  const dueToday = [
+    ...dueTodayDated,
+    ...dailies.filter((t) => !dueTodayIds.has(t.id)),
+  ].sort((a, b) => Number(a.completed) - Number(b.completed) || a.title.localeCompare(b.title));
   const dueThisWeek = tasks
     .filter((t) => !t.completed && t.due_date && isThisWeek(parseDate(t.due_date), { weekStartsOn: 1 }) && !isPast(parseDate(t.due_date)) && !isToday(parseDate(t.due_date)))
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
-  const dailies = tasks.filter((t) => isTaskScheduledToday(t));
   // Tomorrow: tasks dated for tomorrow + all tasks recurring tomorrow
   const tomorrowRecurring = tasks.filter((t) => isTaskScheduledOn(t, tomorrowDateObj));
   const tomorrowDated = tasks.filter((t) => t.due_date === tomorrowKey && !tomorrowRecurring.some((r) => r.id === t.id));
@@ -57,11 +60,10 @@ export function DashboardView() {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.completed).length;
 
-  type TabKey = "today" | "tomorrow" | "daily" | "week" | "unscheduled";
+  type TabKey = "today" | "tomorrow" | "week" | "unscheduled";
   const tabDefs: { key: TabKey; label: string; count: number; visible: boolean }[] = [
     { key: "today", label: "Today", count: dueToday.length, visible: true },
     { key: "tomorrow", label: "Tomorrow", count: tomorrow.length, visible: true },
-    { key: "daily", label: "Daily Rituals", count: dailies.length, visible: dailies.length > 0 },
     { key: "week", label: "This Week", count: dueThisWeek.length, visible: true },
     { key: "unscheduled", label: "Unscheduled", count: unscheduled.length, visible: unscheduled.length > 0 },
   ];
@@ -147,15 +149,6 @@ export function DashboardView() {
               </>
             )}
           </TabsContent>
-
-          {dailies.length > 0 && (
-            <TabsContent value="daily" className="mt-4">
-              <p className="text-xs text-ink-muted mb-2 tabular-nums">
-                {dailies.filter((t) => t.completed).length}/{dailies.length} done today
-              </p>
-              <TaskList tasks={dailies} areas={areas} />
-            </TabsContent>
-          )}
 
           <TabsContent value="week" className="mt-4">
             {dueThisWeek.length === 0 ? (
