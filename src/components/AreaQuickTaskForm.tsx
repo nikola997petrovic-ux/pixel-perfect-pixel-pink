@@ -1,6 +1,7 @@
 import { useState, useRef, type FormEvent } from "react";
 import { isPast, isToday, format } from "date-fns";
 import { Plus, Trash2, Repeat } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useCreateTask, useTasksForArea, useToggleTask, useDeleteTask } from "@/lib/api";
 import { formatWeeklyLabel } from "@/lib/recurrence";
@@ -118,7 +119,13 @@ export function AreaQuickTaskForm({ areaId, accent }: { areaId: string; accent: 
         </ul>
       )}
       {tasks.length > visibleTasks.length && (
-        <p className="text-xs text-ink-muted">+{tasks.length - visibleTasks.length} more — open domain to see all</p>
+        <Link
+          to="/areas/$areaId"
+          params={{ areaId }}
+          className="text-xs text-ink-muted hover:text-ink underline underline-offset-2 transition-colors"
+        >
+          +{tasks.length - visibleTasks.length} more — open domain to see all
+        </Link>
       )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
