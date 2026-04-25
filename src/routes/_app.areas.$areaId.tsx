@@ -308,13 +308,22 @@ function TaskRowInline({ task, accent }: { task: Task; accent: string }) {
       />
       <span className={`text-sm flex-1 min-w-0 truncate ${task.completed ? "line-through text-ink-muted" : "text-ink"}`}>
         {task.title}
-        {task.recurrence && (
-          <Repeat className="inline-block size-3 ml-1.5 text-ink-muted" />
-        )}
       </span>
-      <span className={`text-xs tabular-nums shrink-0 ${overdue ? "text-overdue" : "text-ink-muted"}`}>
-        {dueDate ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d")) : ""}
-      </span>
+      {(() => {
+        const days = getDaysFromNotes(task.notes);
+        const recurLabel = task.recurrence === "daily"
+          ? (days?.length ? formatDaysLabel(days) : "Daily")
+          : null;
+        const dateLabel = dueDate
+          ? (isToday(dueDate) ? "Today" : format(dueDate, "MMM d"))
+          : null;
+        const meta = recurLabel ?? dateLabel;
+        return meta ? (
+          <span className={`text-xs shrink-0 ${overdue ? "text-overdue" : "text-ink-muted"}`}>
+            {meta}
+          </span>
+        ) : null;
+      })()}
       <button
         type="button"
         onClick={openEdit}
