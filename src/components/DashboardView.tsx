@@ -372,7 +372,7 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
         : format(dueDate, "EEE, MMM d")
     : task.recurrence === "daily"
       ? "Daily"
-      : task.recurrence?.startsWith("weekly:")
+      : task.recurrence?.startsWith("days:")
         ? formatWeeklyLabel(task.recurrence)
         : "Unscheduled";
 
@@ -382,7 +382,7 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
     if (task.recurrence === "daily") {
       setRecurMode("daily");
       setSelectedDays([]);
-    } else if (task.recurrence?.startsWith("weekly:")) {
+    } else if (task.recurrence?.startsWith("days:")) {
       setRecurMode("weekly");
       setSelectedDays(parseWeeklyDays(task.recurrence));
     } else {
@@ -399,7 +399,7 @@ function TaskRow({ task, area, overdue }: { task: Task; area?: Area; overdue: bo
     if (trimmed.length > 200) { toast.error("Title too long"); return; }
     const recurrence = recurMode === "daily" ? "daily"
       : recurMode === "weekly" && selectedDays.length > 0
-        ? `weekly:${[...selectedDays].sort().join(",")}`
+        ? `days:${[...selectedDays].sort().join(",")}`
         : null;
     await update.mutateAsync({ id: task.id, area_id: task.area_id, title: trimmed, due_date: due || null, recurrence });
     setEditing(false);

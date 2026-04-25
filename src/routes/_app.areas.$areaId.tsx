@@ -270,7 +270,7 @@ function NewTaskInline({ goalId, areaId, placeholder = "A task…" }: { goalId: 
   const getRecurrence = (): string | null => {
     if (recurMode === "daily") return "daily";
     if (recurMode === "weekly" && selectedDays.length > 0)
-      return `weekly:${[...selectedDays].sort().join(",")}`;
+      return `days:${[...selectedDays].sort().join(",")}`;
     return null;
   };
 

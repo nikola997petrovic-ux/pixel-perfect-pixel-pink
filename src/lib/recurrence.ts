@@ -2,12 +2,12 @@ import type { Task } from "@/lib/types";
 
 const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-// "weekly:1,3" → [1, 3]
+// "days:1,3" → [1, 3]
 export function parseWeeklyDays(recurrence: string): number[] {
-  return recurrence.slice("weekly:".length).split(",").map(Number);
+  return recurrence.slice("days:".length).split(",").map(Number);
 }
 
-// "weekly:1,3" → "Mon, Wed"
+// "days:1,3" → "Mon, Wed"
 export function formatWeeklyLabel(recurrence: string): string {
   return parseWeeklyDays(recurrence).map((d) => DAY_ABBR[d]).join(", ");
 }
@@ -16,7 +16,7 @@ export function formatWeeklyLabel(recurrence: string): string {
 export function isScheduledOn(recurrence: string | null, date: Date): boolean {
   if (!recurrence) return false;
   if (recurrence === "daily") return true;
-  if (recurrence.startsWith("weekly:")) {
+  if (recurrence.startsWith("days:")) {
     return parseWeeklyDays(recurrence).includes(date.getDay());
   }
   return false;
@@ -38,7 +38,7 @@ export function applyRecurrence(task: Task): Task {
     return { ...task, completed: false };
   }
 
-  if (r.startsWith("weekly:")) {
+  if (r.startsWith("days:")) {
     const scheduledDays = parseWeeklyDays(r);
     const todayDow = new Date().getDay();
     if (!scheduledDays.includes(todayDow)) {
